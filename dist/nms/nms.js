@@ -40,7 +40,6 @@ exports.startNMS = startNMS;
 const node_media_server_1 = __importDefault(require("node-media-server"));
 const path = __importStar(require("path"));
 const config = {
-    logType: 3,
     rtmp: {
         port: 1935,
         chunk_size: 60000,
@@ -50,32 +49,24 @@ const config = {
     },
     http: {
         port: 8000,
-        allow_origin: '*',
-        mediaroot: "C:/Airena-RTMP/public",
+        allow_origin: '*'
     },
     trans: {
-        ffmpeg: "C:/ffmpeg/bin/ffmpeg.exe",
+        ffmpeg: 'C:/ffmpeg/bin/ffmpeg.exe',
         tasks: [
             {
                 app: 'live',
-                vc: "copy",
-                ac: "aac",
                 hls: true,
-                hlsFlags: '[hls_time=10:hls_list_size=6:hls_flags=independent_segments]',
+                hlsFlags: '[hls_time=2:hls_list_size=5:hls_flags=delete_segments]',
                 hlsKeep: true,
-                hlsPath: "C:/Airena-RTMP/public/media",
-                dash: false,
-                name: "test"
+                hlsPath: path.join(__dirname, '../../public/media'),
+                hlsCleanup: true
             }
         ]
     }
 };
 const nms = new node_media_server_1.default(config);
-const fs = __importStar(require("fs"));
-const mediaPath = path.join(__dirname, '../../public/media');
-if (!fs.existsSync(mediaPath)) {
-    fs.mkdirSync(mediaPath, { recursive: true });
-}
 function startNMS() {
     nms.run();
 }
+//# sourceMappingURL=nms.js.map

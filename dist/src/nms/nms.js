@@ -45,37 +45,27 @@ const config = {
         chunk_size: 60000,
         gop_cache: true,
         ping: 30,
-        ping_timeout: 120
+        ping_timeout: 60
     },
     http: {
         port: 8000,
-        mediaroot: path.join(__dirname, '../../public/media'),
         allow_origin: '*'
     },
     trans: {
-        ffmpeg: "C:\\ffmpeg\\bin\\ffmpeg.exe",
+        ffmpeg: 'C:/ffmpeg/bin/ffmpeg.exe',
         tasks: [
             {
                 app: 'live',
                 hls: true,
                 hlsFlags: '[hls_time=2:hls_list_size=5:hls_flags=delete_segments]',
-                hlsKeep: false,
+                hlsKeep: true,
                 hlsPath: path.join(__dirname, '../../public/media'),
-                hlsCleanup: false,
-                mp4: false,
-                vc: "copy",
-                ac: "aac",
-                dash: false
+                hlsCleanup: true
             }
         ]
     }
 };
 const nms = new node_media_server_1.default(config);
-const fs = __importStar(require("fs"));
-const mediaPath = path.join(__dirname, '../../public/media');
-if (!fs.existsSync(mediaPath)) {
-    fs.mkdirSync(mediaPath, { recursive: true });
-}
 function startNMS() {
     nms.run();
 }

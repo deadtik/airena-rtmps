@@ -1,41 +1,30 @@
+declare module 'node-media-server';
 declare module 'node-media-server' {
-    interface RtmpConfig {
+  import { EventEmitter } from 'events';
+
+  export interface MediaServerOptions {
+    rtmp: {
       port: number;
       chunk_size: number;
       gop_cache: boolean;
       ping: number;
       ping_timeout: number;
-    }
-  
-    interface HttpConfig {
+    };
+    http: {
       port: number;
-      mediaroot: string;
       allow_origin: string;
-    }
-  
-    interface TransConfig {
-      ffmpeg: string;
-      tasks: Array<{
-        app: string;
-        hls: boolean;
-        hlsFlags: string;
-        dash: boolean;
-        vc?: string;
-        ac?: string;
-      }>;
-    }
-  
-    interface Config {
-      rtmp: RtmpConfig;
-      http: HttpConfig;
-      trans?: TransConfig;
-    }
-  
-    class NodeMediaServer {
-      constructor(config: Config);
-      run(): void;
-      on(event: string, callback: (...args: any[]) => void): void;
-    }
-  
-    export = NodeMediaServer;
+    };
+    https?: {
+      port: number;
+      allow_origin: string;
+      key: string;
+      cert: string;
+    };
   }
+
+  export class NodeMediaServer extends EventEmitter {
+    constructor(options: MediaServerOptions);
+    run(): void;
+    stop(): void;
+  }
+}

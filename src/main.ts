@@ -1,15 +1,13 @@
-// main.ts
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { startNMS } from './nms/nms';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
-import * as express from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-
-  // Serve the HLS media folder
-  app.use('/media', express.static(join(__dirname, '..', 'public', 'media')));
-
-  await app.listen(8000);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.useStaticAssets(join(__dirname, '..', 'public'));
+  startNMS();
+  await app.listen(3000);
 }
 bootstrap();

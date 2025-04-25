@@ -19,3 +19,4 @@ exports.StreamModule = StreamModule = __decorate([
         providers: [stream_service_1.StreamService],
     })
 ], StreamModule);
+//# sourceMappingURL=stream.module.js.map

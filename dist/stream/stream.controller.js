@@ -31,3 +31,4 @@ exports.StreamController = StreamController = __decorate([
     (0, common_1.Controller)('stream'),
     __metadata("design:paramtypes", [stream_service_1.StreamService])
 ], StreamController);
+//# sourceMappingURL=stream.controller.js.map
