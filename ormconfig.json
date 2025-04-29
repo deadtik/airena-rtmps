@@ -1,0 +1,6 @@
+{
+  "type": "sqlite",
+  "database": "src/data/streaming.db",
+  "entities": ["src/**/*.entity{.ts,.js}"],
+  "synchronize": true
+}

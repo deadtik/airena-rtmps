@@ -1,14 +1,20 @@
 import { Module } from '@nestjs/common';
-import { ServeStaticModule } from '@nestjs/serve-static';
-import { join } from 'path';
-import { StreamModule } from './stream/stream.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { NmsService } from './nms/nms.service'; // Ensure the correct path
+import { Stream } from './stream/stream.entity'; // Adjust based on your entity
 
 @Module({
   imports: [
-    ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'public'),
+    // TypeORM configuration for SQLite
+    TypeOrmModule.forRoot({
+      type: 'sqlite',
+      database: 'data/streaming.db', // Path to your SQLite database
+      entities: [Stream], // Include your entities here
+      synchronize: true, // Set to false in production
     }),
-    StreamModule,
+    TypeOrmModule.forFeature([Stream]), // Register the Stream entity
   ],
+  controllers: [],  // Add your controllers if needed
+  providers: [NmsService],  // Register NmsService as a provider
 })
 export class AppModule {}
