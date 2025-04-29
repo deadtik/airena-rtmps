@@ -46,5 +46,5 @@ A custom RTMP server using NestJS, NodeMediaServer (NMS), SQLite for storing str
 
 ```bash
 git clone https://your-repository-url.git
-cd airena-rtmp
+cd airena-rtmps
 
