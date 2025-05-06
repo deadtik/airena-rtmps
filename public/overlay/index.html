@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Live Stream Metrics</title>
+  <style>
+    body {
+      background: black;
+      color: lime;
+      font-family: monospace;
+      font-size: 1.2rem;
+    }
+    .metric {
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="metric">Bitrate: <span id="bitrate">0</span> kbps</div>
+  <div class="metric">Bandwidth: <span id="bandwidth">0</span> kbps</div>
+  <div class="metric">Latency: <span id="latency">0</span> ms</div>
+  <div class="metric">Last Updated: <span id="updated">Never</span></div>
+
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    const socket = io('http://localhost:3000'); // Replace port if needed
+
+    socket.on('connect', () => {
+      console.log('Connected to metrics WebSocket');
+    });
+
+    socket.on('broadcastMetrics', (metrics) => {
+      document.getElementById('bitrate').textContent = metrics.bitrate;
+      document.getElementById('bandwidth').textContent = metrics.bandwidth;
+      document.getElementById('latency').textContent = metrics.latency;
+      document.getElementById('updated').textContent = new Date(metrics.lastUpdated).toLocaleTimeString();
+    });
+  </script>
+</body>
+</html>

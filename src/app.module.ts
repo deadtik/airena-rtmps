@@ -1,20 +1,27 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { NmsService } from './nms/nms.service'; // Ensure the correct path
-import { Stream } from './stream/stream.entity'; // Adjust based on your entity
+
+import { Stream } from './stream/stream.entity';
+
+import { NmsService } from './nms/nms.service';
+import { StreamService } from './stream/stream.service';
+
+import { StreamController } from './stream/stream.controller';
+
+import { MetricsModule } from './metrics/metric.module';
 
 @Module({
   imports: [
-    // TypeORM configuration for SQLite
     TypeOrmModule.forRoot({
       type: 'sqlite',
-      database: 'data/streaming.db', // Path to your SQLite database
-      entities: [Stream], // Include your entities here
+      database: 'src/data/streaming.db',
+      entities: [Stream],
       synchronize: true, // Set to false in production
     }),
-    TypeOrmModule.forFeature([Stream]), // Register the Stream entity
+    TypeOrmModule.forFeature([Stream]),
+    MetricsModule,
   ],
-  controllers: [],  // Add your controllers if needed
-  providers: [NmsService],  // Register NmsService as a provider
+  controllers: [StreamController],
+  providers: [NmsService, StreamService],
 })
 export class AppModule {}
