@@ -25,10 +25,17 @@
   <script>
     const socket = io('http://localhost:3000'); // Replace port if needed
 
-    socket.on('connect', () => {
-      console.log('Connected to metrics WebSocket');
-    });
+ // Function to toggle overlay visibility when Fn + F6 is pressed
+ const toggleOverlay = (event) => {
+      // Check if F6 key is pressed along with a modifier key (Shift, Ctrl, or Alt)
+      if (event.key === 'F6' && (event.shiftKey || event.ctrlKey || event.altKey)) {
+        const overlay = document.getElementById('metrics-overlay');
+        overlay.classList.toggle('hidden'); // Toggle the 'hidden' class to show/hide overlay
+      }
+    };
 
+    // Event listener for key press (Fn + F6 or any modifier + F6)
+    window.addEventListener('keydown', toggleOverlay);
     socket.on('broadcastMetrics', (metrics) => {
       document.getElementById('bitrate').textContent = metrics.bitrate;
       document.getElementById('bandwidth').textContent = metrics.bandwidth;

@@ -1,48 +1,150 @@
-import { Injectable } from '@nestjs/common';
-import { Stream } from './stream.entity';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { v4 as uuidv4 } from 'uuid';
+import { Stream } from './stream.entity';
+import { randomBytes } from 'crypto';
+import { ConfigService } from '@nestjs/config';
+import { User } from './user.entity';
 
 @Injectable()
 export class StreamService {
+  private readonly rtmpServerUrl: string;
+
   constructor(
-    @InjectRepository(Stream)
-    private streamRepository: Repository<Stream>,
-  ) {}
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
+    private configService: ConfigService,
+  ) {
+    this.rtmpServerUrl = this.configService.get<string>('RTMP_SERVER_URL') || 'rtmps://yourdomain.com';
+  }
 
-  // Generate a unique stream key
   generateStreamKey(): string {
-    return uuidv4();
+    return randomBytes(16).toString('hex');
   }
 
-  // Generate a stream URL based on the stream key
-  getStreamUrl(key: string): string {
-    return `rtmps://your-server-address/live/${key}`;
+  generateStreamUrl(streamKey: string): string {
+    return `${this.rtmpServerUrl}/live/${streamKey}`;
   }
 
-  // Create and store a new stream record
-  async createStream(userId: number): Promise<Stream> {
-    const streamKey = this.generateStreamKey();
-    const streamUrl = this.getStreamUrl(streamKey);
+  async getOrCreateStreamKey(clerkId: string): Promise<{ streamKey: string; streamUrl: string }> {
+    let user = await this.userRepo.findOne({ where: { clerkId } });
+    
+    if (!user) {
+      const streamKey = this.generateStreamKey();
+      const streamUrl = this.generateStreamUrl(streamKey);
+      
+      user = this.userRepo.create({
+        clerkId,
+        streamKey,
+        streamUrl,
+        streamSettings: {
+          quality: 'high',
+          maxBitrate: 6000,
+          resolution: '1920x1080'
+        }
+      });
+      await this.userRepo.save(user);
+    }
 
-    const newStream = this.streamRepository.create({
-      streamKey,
-      streamUrl,
-      userId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    return {
+      streamKey: user.streamKey,
+      streamUrl: user.streamUrl
+    };
+  }
+
+  async getUserByStreamKey(streamKey: string): Promise<User | null> {
+    return this.userRepo.findOne({ where: { streamKey } });
+  }
+
+  async getStreamStatus(streamKey: string) {
+    const user = await this.getUserByStreamKey(streamKey);
+    if (!user) {
+      throw new NotFoundException('Stream not found');
+    }
+    
+    // TODO: Implement actual stream status check with your RTMP server
+    return {
+      isLive: user.isStreaming,
+      viewers: 0,
+      startTime: null,
+      duration: 0
+    };
+  }
+
+  async getStreamStats(streamKey: string) {
+    const user = await this.getUserByStreamKey(streamKey);
+    if (!user) {
+      throw new NotFoundException('Stream not found');
+    }
+
+    // TODO: Implement actual stream statistics with your RTMP server
+    return {
+      bitrate: 0,
+      fps: 0,
+      resolution: user.streamSettings?.resolution || '0x0',
+      totalViewers: 0,
+      peakViewers: 0
+    };
+  }
+
+  async updateStreamSettings(
+    clerkId: string,
+    streamKey: string,
+    settings: {
+      quality?: string;
+      maxBitrate?: number;
+      resolution?: string;
+    }
+  ) {
+    const user = await this.userRepo.findOne({ 
+      where: { 
+        clerkId,
+        streamKey 
+      } 
     });
 
-    return await this.streamRepository.save(newStream);
+    if (!user) {
+      throw new NotFoundException('Stream not found');
+    }
+
+    user.streamSettings = {
+      ...user.streamSettings,
+      ...settings
+    };
+
+    await this.userRepo.save(user);
+
+    return {
+      success: true,
+      message: 'Stream settings updated successfully',
+      settings: user.streamSettings
+    };
   }
 
-  // Fetch stream by its key
-  async getStreamByKey(key: string): Promise<Stream> {
-    const stream = await this.streamRepository.findOne({ where: { streamKey: key } });
-    if (!stream) {
-      throw new Error(`Stream with key ${key} not found`);
+  async deleteStreamKey(clerkId: string, streamKey: string) {
+    const user = await this.userRepo.findOne({ 
+      where: { 
+        clerkId,
+        streamKey 
+      } 
+    });
+
+    if (!user) {
+      throw new NotFoundException('Stream key not found');
     }
-    return stream;
+
+    const newStreamKey = this.generateStreamKey();
+    const newStreamUrl = this.generateStreamUrl(newStreamKey);
+
+    user.streamKey = newStreamKey;
+    user.streamUrl = newStreamUrl;
+    await this.userRepo.save(user);
+
+    return {
+      success: true,
+      message: 'Stream key deleted successfully',
+      newStreamKey: user.streamKey,
+      newStreamUrl: user.streamUrl
+    };
   }
 }

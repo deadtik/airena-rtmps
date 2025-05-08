@@ -10,7 +10,9 @@
         "serve": "npx serve public -l 8000"
     },
     "dependencies": {
+        "@clerk/clerk-sdk-node": "^4.13.23",
         "@nestjs/common": "^10.0.0",
+        "@nestjs/config": "^4.0.2",
         "@nestjs/core": "^10.4.17",
         "@nestjs/platform-express": "^10.4.17",
         "@nestjs/platform-socket.io": "^10.4.17",
@@ -19,6 +21,7 @@
         "@nestjs/typeorm": "^10.0.2",
         "@nestjs/websockets": "^10.4.17",
         "express": "^4.18.2",
+        "firebase-admin": "^13.3.0",
         "nestjs": "^0.0.1",
         "node-media-server": "^2.4.7",
         "reflect-metadata": "^0.1.13",
