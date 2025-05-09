@@ -1,4 +1,3 @@
-// src/auth/clerk.strategy.ts
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import jwksRsa from 'jwks-rsa';
@@ -12,15 +11,19 @@ export class ClerkJwtStrategy extends PassportStrategy(Strategy, 'clerk-jwt') {
       secretOrKeyProvider: jwksRsa.passportJwtSecret({
         cache: true,
         rateLimit: true,
-        jwksRequestsPerMinute: 5,
+        jwksRequestsPerMinute: 10,
         jwksUri: 'https://civil-stallion-7.clerk.accounts.dev/.well-known/jwks.json',
       }),
-      issuer: 'https://civil-stallion-7.clerk.accounts.dev',
+      issuer: 'https://localhost:3000',
       algorithms: ['RS256'],
     });
   }
 
   async validate(payload: any) {
-    return payload; // Can extract user ID, email, etc. if needed
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      ...payload,
+    };
   }
 }

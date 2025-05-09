@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { ClerkMiddleware } from './auth/clerk.middleware';
+import { requireAuth } from '@clerk/express';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -15,6 +16,8 @@ async function bootstrap() {
 
   // Apply Clerk middleware globally
   app.use(new ClerkMiddleware().use);
+  app.use(requireAuth());
+
 
   // Serve static assets from /public
   app.useStaticAssets(join(__dirname, '..', 'public'));

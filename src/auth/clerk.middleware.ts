@@ -7,7 +7,7 @@ export class ClerkMiddleware implements NestMiddleware {
   async use(req: Request, res: Response, next: NextFunction) {
     const auth = getAuth(req);
 
-    if (!auth || !auth.userId || !auth.sessionId) {
+    if (!auth || !auth.userId) {
       return next(new UnauthorizedException('Authentication failed'));
     }
 
