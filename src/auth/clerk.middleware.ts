@@ -1,49 +1,31 @@
 import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { Clerk } from '@clerk/clerk-sdk-node';
+import { getAuth } from '@clerk/express';
 
 @Injectable()
 export class ClerkMiddleware implements NestMiddleware {
-  private clerk: ReturnType<typeof Clerk>;
-
-  constructor() {
-    this.clerk = Clerk({ secretKey: process.env.CLERK_SECRET_KEY });
-  }
-
   async use(req: Request, res: Response, next: NextFunction) {
     try {
-      const authHeader = req.headers.authorization;
+      const { userId, sessionId, getToken } = getAuth(req);
 
-      if (!authHeader?.startsWith('Bearer ')) {
-        throw new UnauthorizedException('Missing or malformed authorization header');
+      if (!userId || !sessionId) {
+        throw new UnauthorizedException('User not authenticated');
       }
 
-      const sessionToken = authHeader.split(' ')[1];
-      if (!sessionToken) {
-        throw new UnauthorizedException('No session token provided');
-      }
-
-      const session = await this.clerk.sessions.verifySession(sessionToken, sessionToken);
-      if (!session || !session.userId) {
-        throw new UnauthorizedException('Invalid or expired session token');
-      }
-
-      // Attach both `auth` and `user` for compatibility
       (req as any).auth = {
-        userId: session.userId,
-        sessionId: session.id,
-        session,
+        userId,
+        sessionId,
+        token: await getToken(),
       };
 
-      // For controller's req.user?.sub
       (req as any).user = {
-        sub: session.userId,
+        sub: userId,
       };
 
       next();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Authentication failed';
-      next(new UnauthorizedException(errorMessage));
+      console.error('ClerkMiddleware error:', error);
+      throw new UnauthorizedException('Authentication failed');
     }
   }
 }
