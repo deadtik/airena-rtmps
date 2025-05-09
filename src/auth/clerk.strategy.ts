@@ -1,0 +1,26 @@
+// src/auth/clerk.strategy.ts
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import jwksRsa from 'jwks-rsa';
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class ClerkJwtStrategy extends PassportStrategy(Strategy, 'clerk-jwt') {
+  constructor() {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      secretOrKeyProvider: jwksRsa.passportJwtSecret({
+        cache: true,
+        rateLimit: true,
+        jwksRequestsPerMinute: 5,
+        jwksUri: 'https://civil-stallion-7.clerk.accounts.dev/.well-known/jwks.json',
+      }),
+      issuer: 'https://civil-stallion-7.clerk.accounts.dev',
+      algorithms: ['RS256'],
+    });
+  }
+
+  async validate(payload: any) {
+    return payload; // Can extract user ID, email, etc. if needed
+  }
+}

@@ -18,37 +18,39 @@ export class StreamService {
     this.rtmpServerUrl = this.configService.get<string>('RTMP_SERVER_URL') || 'rtmps://yourdomain.com';
   }
 
-  generateStreamKey(): string {
+  private generateStreamKey(): string {
     return randomBytes(16).toString('hex');
   }
 
-  generateStreamUrl(streamKey: string): string {
+  private generateStreamUrl(streamKey: string): string {
     return `${this.rtmpServerUrl}/live/${streamKey}`;
   }
 
   async getOrCreateStreamKey(clerkId: string): Promise<{ streamKey: string; streamUrl: string }> {
     let user = await this.userRepo.findOne({ where: { clerkId } });
-    
+
     if (!user) {
       const streamKey = this.generateStreamKey();
       const streamUrl = this.generateStreamUrl(streamKey);
-      
+
       user = this.userRepo.create({
         clerkId,
         streamKey,
         streamUrl,
+        isStreaming: false,
         streamSettings: {
           quality: 'high',
           maxBitrate: 6000,
-          resolution: '1920x1080'
-        }
+          resolution: '1920x1080',
+        },
       });
+
       await this.userRepo.save(user);
     }
 
     return {
       streamKey: user.streamKey,
-      streamUrl: user.streamUrl
+      streamUrl: user.streamUrl,
     };
   }
 
@@ -61,13 +63,12 @@ export class StreamService {
     if (!user) {
       throw new NotFoundException('Stream not found');
     }
-    
-    // TODO: Implement actual stream status check with your RTMP server
+
     return {
       isLive: user.isStreaming,
       viewers: 0,
       startTime: null,
-      duration: 0
+      duration: 0,
     };
   }
 
@@ -77,13 +78,12 @@ export class StreamService {
       throw new NotFoundException('Stream not found');
     }
 
-    // TODO: Implement actual stream statistics with your RTMP server
     return {
-      bitrate: 0,
+      bitrate: 0, // placeholder, to be filled by RTMP metric service
       fps: 0,
       resolution: user.streamSettings?.resolution || '0x0',
       totalViewers: 0,
-      peakViewers: 0
+      peakViewers: 0,
     };
   }
 
@@ -94,13 +94,13 @@ export class StreamService {
       quality?: string;
       maxBitrate?: number;
       resolution?: string;
-    }
+    },
   ) {
-    const user = await this.userRepo.findOne({ 
-      where: { 
+    const user = await this.userRepo.findOne({
+      where: {
         clerkId,
-        streamKey 
-      } 
+        streamKey,
+      },
     });
 
     if (!user) {
@@ -109,7 +109,7 @@ export class StreamService {
 
     user.streamSettings = {
       ...user.streamSettings,
-      ...settings
+      ...settings,
     };
 
     await this.userRepo.save(user);
@@ -117,16 +117,16 @@ export class StreamService {
     return {
       success: true,
       message: 'Stream settings updated successfully',
-      settings: user.streamSettings
+      settings: user.streamSettings,
     };
   }
 
   async deleteStreamKey(clerkId: string, streamKey: string) {
-    const user = await this.userRepo.findOne({ 
-      where: { 
+    const user = await this.userRepo.findOne({
+      where: {
         clerkId,
-        streamKey 
-      } 
+        streamKey,
+      },
     });
 
     if (!user) {
@@ -138,13 +138,15 @@ export class StreamService {
 
     user.streamKey = newStreamKey;
     user.streamUrl = newStreamUrl;
+    user.isStreaming = false;
+
     await this.userRepo.save(user);
 
     return {
       success: true,
-      message: 'Stream key deleted successfully',
+      message: 'Stream key regenerated successfully',
       newStreamKey: user.streamKey,
-      newStreamUrl: user.streamUrl
+      newStreamUrl: user.streamUrl,
     };
   }
 }

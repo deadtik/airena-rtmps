@@ -11,8 +11,8 @@ import { StreamService } from './stream/stream.service';
 import { StreamController } from './stream/stream.controller';
 
 import { MetricsModule } from './metrics/metric.module';
-
 import { AdsModule } from './ads/ads.module';
+import { AuthModule } from './auth/auth.module'; // Added this
 import { ClerkMiddleware } from './auth/clerk.middleware';
 
 @Module({
@@ -21,6 +21,7 @@ import { ClerkMiddleware } from './auth/clerk.middleware';
       isGlobal: true,
     }),
     AdsModule,
+    AuthModule, // Included here
     TypeOrmModule.forRoot({
       type: 'sqlite',
       database: 'src/data/streaming.db',
