@@ -14,7 +14,7 @@ export class ClerkJwtStrategy extends PassportStrategy(Strategy, 'clerk-jwt') {
         jwksRequestsPerMinute: 10,
         jwksUri: 'https://civil-stallion-7.clerk.accounts.dev/.well-known/jwks.json',
       }),
-      issuer: 'https://localhost:3000',
+      issuer: 'https://civil-stallion-7.clerk.accounts.dev',
       algorithms: ['RS256'],
     });
   }

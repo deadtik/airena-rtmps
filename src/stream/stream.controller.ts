@@ -14,10 +14,10 @@ import { StreamService } from './stream.service';
 import { MetricService } from '../metrics/metric.service';
 import { ClerkAuthGuard } from '../auth/jwt-auth.guard';
 
-// Extend Express Request to include Clerk-authenticated user
+// Extend Request type to include authenticated Clerk user
 interface ClerkRequest extends Request {
   user?: {
-    sub: string; // Clerk user ID typically comes in `sub`
+    userId: string;
   };
 }
 
@@ -30,11 +30,9 @@ export class StreamController {
   ) {}
 
   @Get('key')
-  async getKey(@Req() req: ClerkRequest) {
-    const userId = req.user?.sub;
-    if (!userId) {
-      throw new UnauthorizedException('User not authenticated');
-    }
+  async getStreamKey(@Req() req: ClerkRequest) {
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException('User not authenticated');
 
     const { streamKey } = await this.streamService.getOrCreateStreamKey(userId);
 
@@ -48,39 +46,36 @@ export class StreamController {
   @Get('status/:streamKey')
   async getStreamStatus(@Param('streamKey') streamKey: string) {
     const metrics = await this.metricService.getMetrics(streamKey);
-    const fallback = { bitrate: 0, latency: 0, bandwidth: 0 };
     return {
       isLive: (metrics?.bitrate ?? 0) > 0,
-      ...(metrics ?? fallback),
+      bitrate: metrics?.bitrate ?? 0,
+      latency: metrics?.latency ?? 0,
+      bandwidth: metrics?.bandwidth ?? 0,
     };
   }
 
   @Get('metrics/:streamKey')
   async getStreamMetrics(@Param('streamKey') streamKey: string) {
-    return (
-      (await this.metricService.getMetrics(streamKey)) ?? {
-        bitrate: 0,
-        latency: 0,
-        bandwidth: 0,
-      }
-    );
+    const metrics = await this.metricService.getMetrics(streamKey);
+    return {
+      bitrate: metrics?.bitrate ?? 0,
+      latency: metrics?.latency ?? 0,
+      bandwidth: metrics?.bandwidth ?? 0,
+    };
   }
 
   @Post('settings/:streamKey')
   async updateStreamSettings(
     @Req() req: ClerkRequest,
     @Param('streamKey') streamKey: string,
-    @Body()
-    settings: {
+    @Body() settings: {
       quality?: string;
       maxBitrate?: number;
       resolution?: string;
     },
   ) {
-    const userId = req.user?.sub;
-    if (!userId) {
-      throw new UnauthorizedException('User not authenticated');
-    }
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException('User not authenticated');
 
     return this.streamService.updateStreamSettings(userId, streamKey, settings);
   }
@@ -90,10 +85,8 @@ export class StreamController {
     @Req() req: ClerkRequest,
     @Param('streamKey') streamKey: string,
   ) {
-    const userId = req.user?.sub;
-    if (!userId) {
-      throw new UnauthorizedException('User not authenticated');
-    }
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException('User not authenticated');
 
     return this.streamService.deleteStreamKey(userId, streamKey);
   }
