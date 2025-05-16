@@ -43,6 +43,34 @@ export class StreamController {
     };
   }
 
+  @Post('start/:streamKey')
+  async startStream(@Req() req: ClerkRequest, @Param('streamKey') streamKey: string) {
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException('User not authenticated');
+    return this.streamService.startStream(userId, streamKey);
+  }
+
+  @Post('stop/:streamKey')
+  async stopStream(@Req() req: ClerkRequest, @Param('streamKey') streamKey: string) {
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException('User not authenticated');
+    return this.streamService.stopStream(userId, streamKey);
+  }
+
+  @Get('list')
+  async listStreams(@Req() req: ClerkRequest) {
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException('User not authenticated');
+    return this.streamService.listUserStreams(userId);
+  }
+
+  @Get(':streamKey')
+  async getStreamDetails(@Req() req: ClerkRequest, @Param('streamKey') streamKey: string) {
+    const userId = req.user?.userId;
+    if (!userId) throw new UnauthorizedException('User not authenticated');
+    return this.streamService.getStreamDetails(userId, streamKey);
+  }
+
   @Get('status/:streamKey')
   async getStreamStatus(@Param('streamKey') streamKey: string) {
     const metrics = await this.metricService.getMetrics(streamKey);

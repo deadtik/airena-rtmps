@@ -7,7 +7,7 @@ import { MetricController } from './metric.controller';
 @Module({
   providers: [MetricService, MetricGateway],
   controllers: [MetricController],
-  exports: [MetricService],
+  exports: [MetricService, MetricGateway],
 
 })
 export class MetricsModule {}
