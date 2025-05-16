@@ -1,6 +1,6 @@
 # Airena RTMP Server
 
-A custom RTMP server built using NestJS, NodeMediaServer (NMS), and SQLite. This server supports RTMP streaming, HLS playback, and dynamic stream key generation for secure streaming.
+A custom RTMP server built with NestJS, NodeMediaServer (NMS), and SQLite. This server supports RTMP streaming, HLS playback, dynamic stream key generation, and now features a fully functional API for stream management.
 
 ## Features
 
@@ -9,6 +9,7 @@ A custom RTMP server built using NestJS, NodeMediaServer (NMS), and SQLite. This
 - **HLS Playback**: Serve HLS streams to frontend players.
 - **Frontend Integration**: Easy integration for frontend with stream keys.
 - **Live Metrics (Coming Soon)**: Real-time metrics for live streams, including viewer count, bitrate, and more.
+- **REST API**: Fully implemented API for managing streams, keys, and retrieving stream information.
 
 ## Prerequisites
 
@@ -45,14 +46,18 @@ npm run start:dev
 - Set the **Stream Type** to `Custom`.
 - Enter the following details:
   - **URL**: `rtmp://localhost:1935/live`
-  - **Stream Key**: `test`
+  - **Stream Key**: Obtain a stream key via the API or use a test key.
 
 ### 5. Start Streaming
 
 - Start streaming from OBS.
 - Access the HLS stream at `http://localhost:8000/media/index.m3u8` in your browser.
 
+### 6. Using the API
 
+- The REST API is up and running.
+- Use the API to generate stream keys, manage streams, and retrieve stream information.
+- Refer to the API documentation or `/api` endpoint for available routes and usage.
 
 ## Upcoming Features
 
@@ -62,4 +67,3 @@ npm run start:dev
   - Stream health indicators
 
 Stay tuned for updates!
-
