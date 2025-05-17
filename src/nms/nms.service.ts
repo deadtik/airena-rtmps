@@ -24,7 +24,7 @@ export class NmsService implements OnModuleInit {
         allow_origin: '*',
       },
       trans: {
-        ffmpeg: 'ffmpeg', //  Use globally installed ffmpeg
+        ffmpeg: '/usr/bin/ffmpeg', //  Use globally installed ffmpeg
         tasks: [
           {
             app: 'live',
