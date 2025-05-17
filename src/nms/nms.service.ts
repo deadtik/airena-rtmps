@@ -44,12 +44,13 @@ export class NmsService implements OnModuleInit {
       console.log(`[NodeEvent] Stream started for ${streamKey}`);
 
       const ffmpeg = spawn('ffmpeg', [
-       '-i', `rtmp://127.0.0.1/live/${streamKey}`,
-       '-f', 'null',
-        '-',
-        '-stats',
-        '-progress', 'pipe:1',
-    ]);
+  '-i', `rtmp://127.0.0.1/live/${streamKey}`,
+  '-f', 'null',
+  '-',
+  '-stats',
+  '-progress', 'pipe:1',
+]);
+
 
       let lastTotalSize = 0;
       let lastTimestamp = Date.now();
