@@ -13,7 +13,7 @@ async function bootstrap() {
 
   // Enable CORS for frontend-backend communication
   app.enableCors({
-    origin: '*', // your frontend URL
+    origin: 'https://airena-streamui.vercel.app', // your frontend URL
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
