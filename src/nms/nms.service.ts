@@ -2,7 +2,6 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import NodeMediaServer from 'node-media-server';
 import { MetricService } from '../metrics/metric.service';
 import { spawn } from 'child_process';
-import path from 'path';
 
 @Injectable()
 export class NmsService implements OnModuleInit {
@@ -25,7 +24,7 @@ export class NmsService implements OnModuleInit {
         allow_origin: '*',
       },
       trans: {
-        ffmpeg: path.join('C:', 'ffmpeg', 'bin', 'ffmpeg.exe'),
+        ffmpeg: 'ffmpeg', //  Use globally installed ffmpeg
         tasks: [
           {
             app: 'live',
@@ -44,13 +43,12 @@ export class NmsService implements OnModuleInit {
       console.log(`[NodeEvent] Stream started for ${streamKey}`);
 
       const ffmpeg = spawn('ffmpeg', [
-  '-i', `rtmp://127.0.0.1/live/${streamKey}`,
-  '-f', 'null',
-  '-',
-  '-stats',
-  '-progress', 'pipe:1',
-]);
-
+        '-i', `rtmp://127.0.0.1/live/${streamKey}`,
+        '-f', 'null',
+        '-',
+        '-stats',
+        '-progress', 'pipe:1',
+      ]);
 
       let lastTotalSize = 0;
       let lastTimestamp = Date.now();
@@ -99,7 +97,7 @@ export class NmsService implements OnModuleInit {
 
       ffmpeg.on('close', (code) => {
         console.log(`FFmpeg process for ${streamKey} exited with code ${code}`);
-        this.metricService.resetMetrics(streamKey); // Clean up metrics
+        this.metricService.resetMetrics(streamKey);
       });
     });
 
