@@ -11,7 +11,8 @@ import { StreamService } from './stream/stream.service';
 import { MetricsModule } from './metrics/metric.module';
 import { AdsModule } from './ads/ads.module';
 import { AuthModule } from './auth/auth.module';
-import { StreamModule } from './stream/stream.module'; // ✅ Important
+import { StreamModule } from './stream/stream.module';
+import { VodModule } from './vod/vod.module'; // Import VOD module
 import { ClerkMiddleware } from './auth/clerk.middleware';
 
 @Module({
@@ -19,7 +20,8 @@ import { ClerkMiddleware } from './auth/clerk.middleware';
     ConfigModule.forRoot({ isGlobal: true }),
     AdsModule,
     AuthModule,
-    StreamModule, // ✅ Import this instead of controller manually
+    StreamModule,
+    VodModule, // ✅ Add VOD module here
     MetricsModule,
     TypeOrmModule.forRoot({
       type: 'sqlite',
@@ -29,8 +31,8 @@ import { ClerkMiddleware } from './auth/clerk.middleware';
     }),
     TypeOrmModule.forFeature([Stream, User]),
   ],
-  providers: [NmsService, StreamService], // Ensure NmsService is in the providers
-  exports: [NmsService], // Export it if other modules need to use it
+  providers: [NmsService, StreamService],
+  exports: [NmsService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

@@ -1,13 +1,17 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import NodeMediaServer from 'node-media-server';
 import { MetricService } from '../metrics/metric.service';
+import { VodService } from '../vod/vod.service';
 import { spawn } from 'child_process';
 
 @Injectable()
 export class NmsService implements OnModuleInit {
   private nms!: NodeMediaServer;
 
-  constructor(private readonly metricService: MetricService) {}
+  constructor(
+    private readonly metricService: MetricService,
+    private readonly vodService: VodService,
+  ) {}
 
   onModuleInit() {
     const config = {
@@ -24,7 +28,7 @@ export class NmsService implements OnModuleInit {
         allow_origin: '*',
       },
       trans: {
-        ffmpeg: '/usr/bin/ffmpeg', //  Use globally installed ffmpeg
+        ffmpeg: 'C:/ffmpeg/bin/ffmpeg.exe', // adjust path if needed
         tasks: [
           {
             app: 'live',
@@ -42,7 +46,37 @@ export class NmsService implements OnModuleInit {
       const streamKey = streamPath.split('/').pop() || 'defaultStreamKey';
       console.log(`[NodeEvent] Stream started for ${streamKey}`);
 
+      // === VOD Output ===
+      const vodOutputPath = this.vodService.generateVodPath(streamKey);
       const ffmpeg = spawn('ffmpeg', [
+        '-i', `rtmp://127.0.0.1/live/${streamKey}`,
+        '-c:v', 'copy',
+        '-c:a', 'aac',
+        '-y', // overwrite if exists
+        vodOutputPath,
+      ]);
+
+      let lastTotalSize = 0;
+      let lastTimestamp = Date.now();
+      let lastTime = Date.now();
+
+      ffmpeg.stderr.on('data', (data: Buffer) => {
+        const output = data.toString();
+        // Optional: parse metrics from stderr logs (if needed)
+        console.log(`[FFmpeg][${streamKey}]`, output);
+      });
+
+      ffmpeg.on('error', (err) => {
+        console.error(`[FFmpeg][${streamKey}] Error:`, err.message);
+      });
+
+      ffmpeg.on('close', (code) => {
+        console.log(`[FFmpeg][${streamKey}] Recording ended. Exit code: ${code}`);
+        this.metricService.resetMetrics(streamKey);
+      });
+
+      // Optional: Run separate stats process
+      const metricsFfmpeg = spawn('ffmpeg', [
         '-i', `rtmp://127.0.0.1/live/${streamKey}`,
         '-f', 'null',
         '-',
@@ -50,11 +84,7 @@ export class NmsService implements OnModuleInit {
         '-progress', 'pipe:1',
       ]);
 
-      let lastTotalSize = 0;
-      let lastTimestamp = Date.now();
-      let lastTime = Date.now();
-
-      ffmpeg.stdout.on('data', (data: Buffer) => {
+      metricsFfmpeg.stdout.on('data', (data: Buffer) => {
         const lines = data.toString().split('\n');
         let totalSize = lastTotalSize;
 
@@ -70,7 +100,7 @@ export class NmsService implements OnModuleInit {
         const now = Date.now();
         const deltaBytes = totalSize - lastTotalSize;
         const durationSec = (now - lastTimestamp) / 1000;
-        const bitrate = (deltaBytes * 8) / 1024 / durationSec; // kbps
+        const bitrate = (deltaBytes * 8) / 1024 / durationSec;
 
         lastTotalSize = totalSize;
         lastTimestamp = now;
@@ -87,17 +117,12 @@ export class NmsService implements OnModuleInit {
         });
       });
 
-      ffmpeg.stderr.on('data', (data: Buffer) => {
-        console.error(`FFmpeg stderr [${streamKey}]:`, data.toString());
+      metricsFfmpeg.stderr.on('data', (data: Buffer) => {
+        console.error(`FFmpeg metrics stderr [${streamKey}]:`, data.toString());
       });
 
-      ffmpeg.on('error', (err) => {
-        console.error(`FFmpeg error for ${streamKey}:`, err.message);
-      });
-
-      ffmpeg.on('close', (code) => {
-        console.log(`FFmpeg process for ${streamKey} exited with code ${code}`);
-        this.metricService.resetMetrics(streamKey);
+      metricsFfmpeg.on('close', (code) => {
+        console.log(`FFmpeg metrics process for ${streamKey} exited with code ${code}`);
       });
     });
 
