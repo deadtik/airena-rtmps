@@ -31,7 +31,7 @@ export class MetricService {
 
     this.metrics[streamKey] = updated;
 
-    this.gateway.broadcastMetrics(streamKey, updated);
+    this.gateway.broadcastMetrics(streamKey, { ...updated, streamKey });
   }
 
   getMetrics(streamKey: string): MetricState | null {
