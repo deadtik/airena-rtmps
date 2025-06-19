@@ -16,7 +16,8 @@ import {
     }
   
     broadcastMetrics(streamKey: string, data: any) {
-      this.server.emit('broadcastMetrics', data);
+      // The data object now includes the streamKey, as modified in MetricService
+      this.server.emit('metricsUpdate', data);
     }
   }
   

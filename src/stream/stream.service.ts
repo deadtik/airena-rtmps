@@ -17,8 +17,8 @@ export class StreamService {
     private configService: ConfigService,
     private readonly metricService: MetricService,
   ) {
-    this.rtmpServerUrl = this.configService.get<string>('RTMP_SERVER_URL') || 'rtmps://yourdomain.com';
-    this.hlsServerUrl = this.configService.get<string>('HLS_SERVER_URL') || 'https://yourdomain.com';
+    this.rtmpServerUrl = this.configService.get<string>('RTMP_BASE_URL', 'rtmp://localhost:1935');
+    this.hlsServerUrl = this.configService.get<string>('HLS_BASE_URL', 'http://localhost:8000');
   }
 
   private generateStreamKey(): string {
@@ -30,6 +30,8 @@ export class StreamService {
   }
 
   private generateHlsUrl(streamKey: string): string {
+    // NMS serves HLS under /<app_name>/<stream_key>/index.m3u8
+    // In nms.service.ts, trans.tasks.app is 'live'.
     return `${this.hlsServerUrl}/live/${streamKey}/index.m3u8`;
   }
 
@@ -219,6 +221,8 @@ export class StreamService {
   }
 
   async deleteStreamKey(clerkId: string, streamKey: string) {
+    // This method effectively "regenerates" the stream key by replacing the old one
+    // with a new one. The user's stream settings are preserved.
     const user = await this.userRepo.findOne({
       where: {
         clerkId,
