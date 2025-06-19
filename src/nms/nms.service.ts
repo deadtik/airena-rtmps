@@ -28,7 +28,7 @@ export class NmsService implements OnModuleInit {
         allow_origin: '*',
       },
       trans: {
-        ffmpeg: 'C:/ffmpeg/bin/ffmpeg.exe', // adjust path if needed
+        ffmpeg: 'usr/bin/ffmpeg', // adjust path if needed
         tasks: [
           {
             app: 'live',
