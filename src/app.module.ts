@@ -10,14 +10,16 @@ import { StreamService } from './stream/stream.service';
 
 import { MetricsModule } from './metrics/metric.module';
 import { AdsModule } from './ads/ads.module';
+import { AuthModule } from './auth/auth.module';
 import { StreamModule } from './stream/stream.module';
 import { VodModule } from './vod/vod.module'; // Import VOD module
-
+import { ClerkMiddleware } from './auth/clerk.middleware';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     AdsModule,
+    AuthModule,
     StreamModule,
     VodModule, // ✅ Add VOD module here
     MetricsModule,
@@ -34,6 +36,6 @@ import { VodModule } from './vod/vod.module'; // Import VOD module
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    // You can add middleware here if needed, or leave empty to satisfy the interface
+    consumer.apply(ClerkMiddleware).forRoutes('stream');
   }
 }
