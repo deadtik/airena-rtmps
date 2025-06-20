@@ -12,7 +12,7 @@ import {
 import { Request } from 'express';
 import { StreamService } from './stream.service';
 import { MetricService } from '../metrics/metric.service';
-import { ClerkAuthGuard } from '../auth/jwt-auth.guard';
+
 
 // Extend Request type to include authenticated Clerk user
 interface ClerkRequest extends Request {
@@ -21,7 +21,7 @@ interface ClerkRequest extends Request {
   };
 }
 
-@UseGuards(ClerkAuthGuard)
+// @UseGuards(ClerkAuthGuard)
 @Controller('stream')
 export class StreamController {
   constructor(
