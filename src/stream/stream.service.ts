@@ -35,12 +35,12 @@ export class StreamService {
     return `${this.hlsServerUrl}/live/${streamKey}/index.m3u8`;
   }
 
-  async getOrCreateStreamKey(clerkId: string): Promise<{
+  async getOrCreateStreamKey(firebaseId: string): Promise<{
     streamKey: string;
     streamUrl: string;
     hlsUrl: string;
   }> {
-    let user = await this.userRepo.findOne({ where: { clerkId } });
+    let user = await this.userRepo.findOne({ where: { firebaseId } });
 
     if (!user) {
       const streamKey = this.generateStreamKey();
@@ -48,7 +48,7 @@ export class StreamService {
       const hlsUrl = this.generateHlsUrl(streamKey);
 
       user = this.userRepo.create({
-        clerkId,
+        firebaseId,
         streamKey,
         streamUrl,
         isStreaming: false,
@@ -71,9 +71,9 @@ export class StreamService {
     };
   }
 
-  async startStream(clerkId: string, streamKey: string) {
+  async startStream(firebaseId: string, streamKey: string) {
     const user = await this.userRepo.findOne({
-      where: { clerkId, streamKey },
+      where: { firebaseId, streamKey },
     });
 
     if (!user) throw new NotFoundException('Stream not found');
@@ -89,9 +89,9 @@ export class StreamService {
     };
   }
 
-  async stopStream(clerkId: string, streamKey: string) {
+  async stopStream(firebaseId: string, streamKey: string) {
     const user = await this.userRepo.findOne({
-      where: { clerkId, streamKey },
+      where: { firebaseId, streamKey },
     });
 
     if (!user) throw new NotFoundException('Stream not found');
@@ -105,9 +105,9 @@ export class StreamService {
     };
   }
 
-  async listUserStreams(clerkId: string) {
+  async listUserStreams(firebaseId: string) {
     const user = await this.userRepo.findOne({
-      where: { clerkId },
+      where: { firebaseId },
     });
 
     if (!user) throw new NotFoundException('User not found');
@@ -130,9 +130,9 @@ export class StreamService {
     };
   }
 
-  async getStreamDetails(clerkId: string, streamKey: string) {
+  async getStreamDetails(firebaseId: string, streamKey: string) {
     const user = await this.userRepo.findOne({
-      where: { clerkId, streamKey },
+      where: { firebaseId, streamKey },
     });
 
     if (!user) throw new NotFoundException('Stream not found');
@@ -189,7 +189,7 @@ export class StreamService {
   }
 
   async updateStreamSettings(
-    clerkId: string,
+    firebaseId: string,
     streamKey: string,
     settings: {
       quality?: string;
@@ -199,7 +199,7 @@ export class StreamService {
   ) {
     const user = await this.userRepo.findOne({
       where: {
-        clerkId,
+        firebaseId,
         streamKey,
       },
     });
@@ -220,12 +220,12 @@ export class StreamService {
     };
   }
 
-  async deleteStreamKey(clerkId: string, streamKey: string) {
+  async deleteStreamKey(firebaseId: string, streamKey: string) {
     // This method effectively "regenerates" the stream key by replacing the old one
     // with a new one. The user's stream settings are preserved.
     const user = await this.userRepo.findOne({
       where: {
-        clerkId,
+        firebaseId,
         streamKey,
       },
     });
