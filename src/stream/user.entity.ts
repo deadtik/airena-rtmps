@@ -6,7 +6,7 @@ export class User {
   id!: string;
 
   @Column({ unique: true })
-  clerkId!: string;
+  firebaseId!: string;
 
   @Column({ unique: true, nullable: true })
   streamKey!: string;

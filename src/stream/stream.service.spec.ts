@@ -65,7 +65,7 @@ describe('StreamService', () => {
 
   describe('URL and Key Generation', () => {
     it('should use RTMP_BASE_URL and HLS_BASE_URL from ConfigService for generated URLs in getOrCreateStreamKey when user is new', async () => {
-      const clerkId = 'clerk_new_user';
+      const firebaseId = 'firebase_new_user'; // Renamed clerkId
       const testRtmpBaseUrl = 'rtmp://custom-rtmp.com:1935';
       const testHlsBaseUrl = 'https://custom-hls.com';
       const generatedStreamKey = 'teststreamkey123';
@@ -84,7 +84,7 @@ describe('StreamService', () => {
       mockUserRepo.save.mockImplementation(user => Promise.resolve(user as User));
 
 
-      const result = await newService.getOrCreateStreamKey(clerkId);
+      const result = await newService.getOrCreateStreamKey(firebaseId); // Renamed clerkId
 
       expect(randomBytes).toHaveBeenCalledWith(16);
       expect(result.streamKey).toBe(generatedStreamKey);
@@ -92,7 +92,7 @@ describe('StreamService', () => {
       expect(result.hlsUrl).toBe(`${testHlsBaseUrl}/live/${generatedStreamKey}/index.m3u8`);
       expect(mockUserRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          clerkId,
+          firebaseId, // Renamed clerkId
           streamKey: generatedStreamKey,
           streamUrl: `${testRtmpBaseUrl}/live/${generatedStreamKey}`,
           // hlsUrl is not stored in User entity, but generated on the fly
@@ -101,9 +101,9 @@ describe('StreamService', () => {
     });
 
     it('should use RTMP_BASE_URL and HLS_BASE_URL from ConfigService for generated HLS URL when user exists in getOrCreateStreamKey', async () => {
-      const clerkId = 'clerk_existing_user';
+      const firebaseId = 'firebase_existing_user'; // Renamed clerkId
       const existingUser = {
-        clerkId,
+        firebaseId, // Renamed clerkId
         streamKey: 'existingkey456',
         streamUrl: 'rtmp://default-rtmp/live/existingkey456',
         // other user fields
@@ -120,7 +120,7 @@ describe('StreamService', () => {
 
       mockUserRepo.findOne.mockResolvedValue(existingUser);
 
-      const result = await newService.getOrCreateStreamKey(clerkId);
+      const result = await newService.getOrCreateStreamKey(firebaseId); // Renamed clerkId
 
       expect(result.streamKey).toBe(existingUser.streamKey);
       expect(result.streamUrl).toBe(existingUser.streamUrl); // existing streamUrl should be returned
@@ -129,14 +129,14 @@ describe('StreamService', () => {
 
 
     it('should use RTMP_BASE_URL and HLS_BASE_URL from ConfigService for generated URLs in deleteStreamKey', async () => {
-      const clerkId = 'clerk_user_for_delete';
+      const firebaseId = 'firebase_user_for_delete'; // Renamed clerkId
       const oldStreamKey = 'oldstreamkey789';
       const newGeneratedStreamKey = 'teststreamkey123'; // from crypto mock
       const testRtmpBaseUrl = 'rtmp://another-rtmp.net';
       const testHlsBaseUrl = 'http://another-hls.net';
 
       const existingUser = {
-        clerkId,
+        firebaseId, // Renamed clerkId
         streamKey: oldStreamKey,
         streamUrl: `rtmp://localhost:1935/live/${oldStreamKey}`,
         isStreaming: true, // Will be set to false
@@ -152,7 +152,7 @@ describe('StreamService', () => {
       mockUserRepo.findOne.mockResolvedValue(existingUser);
       mockUserRepo.save.mockImplementation(user => Promise.resolve(user as User));
 
-      const result = await newService.deleteStreamKey(clerkId, oldStreamKey);
+      const result = await newService.deleteStreamKey(firebaseId, oldStreamKey); // Renamed clerkId
 
       expect(randomBytes).toHaveBeenCalledWith(16);
       expect(result.newStreamKey).toBe(newGeneratedStreamKey);
@@ -161,7 +161,7 @@ describe('StreamService', () => {
 
       expect(mockUserRepo.save).toHaveBeenCalledWith(
         expect.objectContaining({
-          clerkId,
+          firebaseId, // Renamed clerkId
           streamKey: newGeneratedStreamKey,
           streamUrl: `${testRtmpBaseUrl}/live/${newGeneratedStreamKey}`,
           isStreaming: false,
