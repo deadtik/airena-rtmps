@@ -78,7 +78,7 @@ This application is configured using environment variables. For local developmen
 | Variable         | Description                                                                 | Example Value                     | Default Value        |
 |------------------|-----------------------------------------------------------------------------|-----------------------------------|----------------------|
 | `PORT`           | The port the main application will listen on.                               | `3000`                            | `3000`               |
-| `FFMPEG_PATH`    | Path to the FFmpeg executable.                                              | `/usr/bin/ffmpeg` or `C:\\ffmpeg\\bin\\ffmpeg.exe` | `ffmpeg`             |
+| `FFMPEG_PATH`    | Path to the FFmpeg executable.                                              | `/usr/bin/ffmpeg` or `C:/ffmpeg/bin/ffmpeg.exe` | `ffmpeg`             |
 | `RTMP_BASE_URL`  | Base URL for the RTMP server where streams are pushed.                      | `rtmp://yourdomain.com:1935`      | `rtmp://localhost:1935` |
 | `HLS_BASE_URL`   | Base URL for the HLS server from where streams are played.                  | `http://yourdomain.com:8000`      | `http://localhost:8000` |
 | `MEDIA_ROOT`     | Root directory for storing media files (HLS segments, VODs).                | `./media_files`                   | `./media`            |
