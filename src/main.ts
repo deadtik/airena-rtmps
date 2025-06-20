@@ -4,14 +4,14 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import { NmsService } from './nms/nms.service'; // Import NmsService
 import { FirebaseAuthMiddleware } from './auth/firebase-auth.middleware'; // Import Firebase Auth Middleware
+import { Request, Response, NextFunction } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Register Firebase Auth middleware
   // Note: For class-based middleware to be truly global in typical NestJS,
-  // it's often registered in AppModule. This is a direct Express-style application.
-  app.use((req, res, next) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     // This ensures that the middleware is instantiated correctly for each request
     // if it has dependencies or needs to be a class instance.
     // If FirebaseAuthMiddleware is simple and doesn't rely on DI for its own dependencies,
@@ -26,7 +26,7 @@ async function bootstrap() {
 
   // Enable CORS for frontend-backend communication
   app.enableCors({
-    origin: 'https://airena-streamui.vercel.app', // your frontend URL
+    origin: 'https://airena.app', // your frontend URL
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
