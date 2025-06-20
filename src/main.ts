@@ -5,6 +5,9 @@ import { join } from 'path';
 import { NmsService } from './nms/nms.service'; // Import NmsService
 import { FirebaseAuthMiddleware } from './auth/firebase-auth.middleware'; // Import Firebase Auth Middleware
 import { Request, Response, NextFunction } from 'express';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -43,3 +46,4 @@ async function bootstrap() {
   console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();
+

@@ -19,18 +19,24 @@ export class FirebaseAuthMiddleware implements NestMiddleware {
 
     try {
       const decodedToken = await admin.auth().verifyIdToken(token);
-      // Attach user to request object. You might want to define a custom request interface.
-      // For now, we'll use a dynamic property.
       (req as any).user = decodedToken;
       next();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error verifying Firebase ID token:', error);
-      if (error.code === 'auth/id-token-expired') {
-        throw new UnauthorizedException('Firebase ID token has expired.');
+
+      // Check if error is an object and has a "code" property
+      if (typeof error === 'object' && error !== null && 'code' in error) {
+        const err = error as { code: string };
+
+        if (err.code === 'auth/id-token-expired') {
+          throw new UnauthorizedException('Firebase ID token has expired.');
+        }
+
+        if (err.code === 'auth/argument-error') {
+          throw new UnauthorizedException('Firebase ID token is malformed or invalid.');
+        }
       }
-      if (error.code === 'auth/argument-error') {
-         throw new UnauthorizedException('Firebase ID token is malformed or invalid.');
-      }
+
       throw new ForbiddenException('Invalid Firebase ID token.');
     }
   }
