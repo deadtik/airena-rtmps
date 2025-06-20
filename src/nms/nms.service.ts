@@ -80,8 +80,13 @@ export class NmsService implements OnModuleInit {
           }
           this.metricService.resetMetrics(streamKey);
         });
-      } catch (error) {
-        this.logger.error(`[FFmpeg VOD Error][${streamKey}] Failed to spawn FFmpeg process for VOD: ${error.message}`, error.stack);
+      } catch (error: unknown) {
+        const message = `[FFmpeg VOD Error][${streamKey}] Failed to spawn FFmpeg process for VOD`;
+        if (error instanceof Error) {
+          this.logger.error(message + `: ${error.message}`, error.stack);
+        } else {
+          this.logger.error(message + `: ${String(error)}`);
+        }
       }
 
       // === Live Metrics Calculation ===
@@ -174,8 +179,13 @@ export class NmsService implements OnModuleInit {
           this.logger.log(`[FFmpeg Metrics][${streamKey}] Metrics process for ${streamKey} exited successfully with code ${code}`);
         }
       });
-    } catch (error) {
-      this.logger.error(`[FFmpeg Metrics Error][${streamKey}] Failed to spawn FFmpeg process for metrics: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      const message = `[FFmpeg Metrics Error][${streamKey}] Failed to spawn FFmpeg process for metrics`;
+      if (error instanceof Error) {
+        this.logger.error(message + `: ${error.message}`, error.stack);
+      } else {
+        this.logger.error(message + `: ${String(error)}`);
+      }
     }
     });
 
@@ -191,8 +201,13 @@ export class NmsService implements OnModuleInit {
 
     // Global error handler for the NodeMediaServer instance itself.
     // This can catch errors not specific to a single stream/event but related to NMS core operations.
-    this.nms.on('error', (err) => {
-      this.logger.error(`[NodeMediaServer Global Error] ${err.message}`, err.stack);
+    this.nms.on('error', (err: unknown) => {
+      const message = `[NodeMediaServer Global Error]`;
+      if (err instanceof Error) {
+        this.logger.error(message + `: ${err.message}`, err.stack);
+      } else {
+        this.logger.error(message + `: ${String(err)}`);
+      }
       // Depending on the severity and type of error, NMS might become unstable.
       // For production systems, more sophisticated error handling (e.g., attempting to restart NMS,
       // or alerting mechanisms) might be necessary. Such logic would need careful implementation

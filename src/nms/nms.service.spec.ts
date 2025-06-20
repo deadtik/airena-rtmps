@@ -6,15 +6,22 @@ import { MetricService } from '../metrics/metric.service';
 import { VodService } from '../vod/vod.service';
 import { Logger } from '@nestjs/common';
 import * as childProcess from 'child_process';
-import NodeMediaServer from 'node-media-server';
+import NodeMediaServer from 'node-media-server'; // Import for type usage AFTER mock setup
 
-// Mock NodeMediaServer
+// Mock NodeMediaServer module
 jest.mock('node-media-server');
-const mockNmsInstance = {
+
+// Define a type for the mocked NMS instance for clarity, though it's often kept simple
+interface MockNmsInstanceType {
+  on: jest.Mock;
+  run: jest.Mock;
+  // Add any other methods of NMS that your service calls, e.g., during onModuleInit
+}
+
+const mockNmsInstance: MockNmsInstanceType = {
   on: jest.fn(),
   run: jest.fn(),
 };
-(NodeMediaServer as jest.Mock).mockImplementation(() => mockNmsInstance);
 
 // Mock child_process
 jest.mock('child_process');
@@ -58,9 +65,14 @@ describe('NmsService', () => {
 
   beforeEach(async () => {
     // Reset mocks for NMS instance and spawn before each test module compilation
+    // Clear the mock implementation and reset calls/instances for NodeMediaServer
+    (NodeMediaServer as jest.MockedClass<typeof NodeMediaServer>).mockClear();
+    // Re-apply the implementation for each test if it's simple or use mockRestore if needed elsewhere
+    (NodeMediaServer as jest.MockedClass<typeof NodeMediaServer>).mockImplementation(() => mockNmsInstance as any);
+
     mockNmsInstance.on.mockClear();
     mockNmsInstance.run.mockClear();
-    (NodeMediaServer as jest.Mock).mockClear();
+
     (childProcess.spawn as jest.Mock).mockClear();
     mockSpawnInstance.on.mockClear();
     mockSpawnInstance.stdout.on.mockClear();
