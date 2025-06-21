@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+// import { clerkMiddleware } from '@clerk/express';
 import { NmsService } from './nms/nms.service'; // Import NmsService
 import { FirebaseAuthMiddleware } from './auth/firebase-auth.middleware'; // Import Firebase Auth Middleware
 import { Request, Response, NextFunction } from 'express';

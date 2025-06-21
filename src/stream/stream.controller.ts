@@ -12,7 +12,7 @@ import {
 import { Request } from 'express';
 import { StreamService } from './stream.service';
 import { MetricService } from '../metrics/metric.service';
-
+import { ClerkAuthGuard } from '../auth/jwt-auth.guard';
 
 // Extend Request type to include authenticated Firebase user
 interface FirebaseRequest extends Request {
@@ -23,7 +23,11 @@ interface FirebaseRequest extends Request {
   };
 }
 
+<<<<<<< HEAD
 // @UseGuards(FirebaseAuthGuard) // If you create a specific guard later
+=======
+@UseGuards(ClerkAuthGuard)
+>>>>>>> 96bb04a23eef9507c65e7e6bad3438844a16b6e1
 @Controller('stream')
 export class StreamController {
   constructor(
