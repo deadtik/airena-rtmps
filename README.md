@@ -188,7 +188,7 @@ Endpoints marked with **🔒 Authenticated** require a valid JWT token from Cler
 #### 4. List User Streams
 - **Method & Path:** `GET /api/stream/list`
 - **Description:** Retrieves a list of streams associated with the authenticated user, along with their current status and metrics.
-- **Authentication:** 🔒 Authenticated (Clerk JWT)
+- **Authentication:**  Authenticated (Clerk JWT)
 - **Path Parameters:** None
 - **Request Body:** None
 - **Success Response (200 OK):**
@@ -221,7 +221,7 @@ Endpoints marked with **🔒 Authenticated** require a valid JWT token from Cler
 #### 5. Get Stream Details
 - **Method & Path:** `GET /api/stream/details/:streamKey`
 - **Description:** Retrieves detailed information about a specific stream, including its status, metrics, and settings.
-- **Authentication:** 🔒 Authenticated (Clerk JWT) - User can only access their own stream details.
+- **Authentication:** Authenticated (Clerk JWT) - User can only access their own stream details.
 - **Path Parameters:**
     - `:streamKey` (string): The stream key.
 - **Request Body:** None
@@ -324,7 +324,7 @@ Endpoints marked with **🔒 Authenticated** require a valid JWT token from Cler
 #### 9. Regenerate Stream Key
 - **Method & Path:** `DELETE /api/stream/key/:streamKey`
 - **Description:** Invalidates the current stream key and generates a new one for the user. This is useful if a stream key is compromised.
-- **Authentication:** 🔒 Authenticated (Clerk JWT)
+- **Authentication:**  Authenticated (Clerk JWT)
 - **Path Parameters:**
     - `:streamKey` (string): The user's current (soon to be old) stream key.
 - **Request Body:** None
