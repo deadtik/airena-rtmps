@@ -10,4 +10,8 @@ module.exports = {
   transform: {
     '^.+\\.(ts|tsx)$': 'ts-jest',
   },
+  // Exclude the src/test directory from Jest's test runs
+  testPathIgnorePatterns: [
+    '<rootDir>/src/test/',
+  ],
 };

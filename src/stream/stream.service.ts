@@ -39,6 +39,12 @@ export class StreamService {
     streamKey: string;
     streamUrl: string;
     hlsUrl: string;
+    isStreaming: boolean;
+    streamSettings: {
+      quality?: string;
+      maxBitrate?: number;
+      resolution?: string;
+    } | null; // streamSettings can be null
   }> {
     let user = await this.userRepo.findOne({ where: { firebaseId } });
 
@@ -60,14 +66,17 @@ export class StreamService {
       });
 
       await this.userRepo.save(user);
-
-      return { streamKey, streamUrl, hlsUrl };
+      // user object now contains defaults including isStreaming and streamSettings
     }
 
+    // Ensure user object is up-to-date if it was just created or found
+    // The 'user' variable here will be the found or newly created & saved user.
     return {
       streamKey: user.streamKey,
       streamUrl: user.streamUrl,
       hlsUrl: this.generateHlsUrl(user.streamKey),
+      isStreaming: user.isStreaming,
+      streamSettings: user.streamSettings,
     };
   }
 
@@ -220,17 +229,16 @@ export class StreamService {
     };
   }
 
-  async deleteStreamKey(firebaseId: string, streamKey: string) {
-    // This method effectively "regenerates" the stream key by replacing the old one
-    // with a new one. The user's stream settings are preserved.
-    const user = await this.userRepo.findOne({
-      where: {
-        firebaseId,
-        streamKey,
-      },
-    });
+  async regenerateStreamKey(firebaseId: string): Promise<{
+    streamKey: string;
+    streamUrl: string;
+    hlsUrl: string;
+  }> {
+    const user = await this.userRepo.findOne({ where: { firebaseId } });
 
-    if (!user) throw new NotFoundException('Stream key not found');
+    if (!user) {
+      throw new NotFoundException(`User with firebaseId ${firebaseId} not found.`);
+    }
 
     const newStreamKey = this.generateStreamKey();
     const newStreamUrl = this.generateStreamUrl(newStreamKey);
@@ -242,10 +250,8 @@ export class StreamService {
     await this.userRepo.save(user);
 
     return {
-      success: true,
-      message: 'Stream key regenerated successfully',
-      newStreamKey,
-      newStreamUrl,
+      streamKey: newStreamKey,
+      streamUrl: newStreamUrl,
       hlsUrl: this.generateHlsUrl(newStreamKey),
     };
   }

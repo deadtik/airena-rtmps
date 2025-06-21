@@ -14,61 +14,64 @@ import { StreamService } from './stream.service';
 import { MetricService } from '../metrics/metric.service';
 
 
-// Extend Request type to include authenticated Clerk user
-interface ClerkRequest extends Request {
-  user?: {
-    userId: string;
+// Extend Request type to include authenticated Firebase user
+interface FirebaseRequest extends Request {
+  user?: { // This structure depends on what FirebaseAuthMiddleware attaches
+    uid: string; // Firebase UID
+    email?: string; // Optional: email if attached by middleware
+    // Add other properties from the decoded Firebase token if they are attached
   };
 }
 
-// @UseGuards(ClerkAuthGuard)
+// @UseGuards(FirebaseAuthGuard) // If you create a specific guard later
 @Controller('stream')
 export class StreamController {
   constructor(
     private readonly streamService: StreamService,
-    private readonly metricService: MetricService,
+    private readonly metricService: MetricService, // Assuming this is still needed for other endpoints
   ) {}
 
-  @Get('key')
-  async getStreamKey(@Req() req: ClerkRequest) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
+  @Get('credentials') // New endpoint path
+  async getStreamCredentials(@Req() req: FirebaseRequest) {
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated or UID missing.');
+    // getOrCreateStreamKey now returns streamKey, streamUrl, hlsUrl, isStreaming, streamSettings
+    return this.streamService.getOrCreateStreamKey(firebaseId);
+  }
 
-    const { streamKey } = await this.streamService.getOrCreateStreamKey(userId);
-
-    return {
-      streamKey,
-      streamUrl: `rtmps://yourdomain.com/live/${streamKey}`,
-      hlsUrl: `https://yourdomain.com/live/${streamKey}/index.m3u8`,
-    };
+  @Post('regenerate-key') // New endpoint path and method
+  async regenerateStreamKey(@Req() req: FirebaseRequest) {
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated or UID missing.');
+    return this.streamService.regenerateStreamKey(firebaseId);
   }
 
   @Post('start/:streamKey')
-  async startStream(@Req() req: ClerkRequest, @Param('streamKey') streamKey: string) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
-    return this.streamService.startStream(userId, streamKey);
+  async startStream(@Req() req: FirebaseRequest, @Param('streamKey') streamKey: string) {
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated or UID missing.');
+    return this.streamService.startStream(firebaseId, streamKey);
   }
 
   @Post('stop/:streamKey')
-  async stopStream(@Req() req: ClerkRequest, @Param('streamKey') streamKey: string) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
-    return this.streamService.stopStream(userId, streamKey);
+  async stopStream(@Req() req: FirebaseRequest, @Param('streamKey') streamKey: string) {
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated or UID missing.');
+    return this.streamService.stopStream(firebaseId, streamKey);
   }
 
   @Get('list')
-  async listStreams(@Req() req: ClerkRequest) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
-    return this.streamService.listUserStreams(userId);
+  async listStreams(@Req() req: FirebaseRequest) {
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated or UID missing.');
+    return this.streamService.listUserStreams(firebaseId);
   }
 
   @Get(':streamKey')
-  async getStreamDetails(@Req() req: ClerkRequest, @Param('streamKey') streamKey: string) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
-    return this.streamService.getStreamDetails(userId, streamKey);
+  async getStreamDetails(@Req() req: FirebaseRequest, @Param('streamKey') streamKey: string) {
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated or UID missing.');
+    return this.streamService.getStreamDetails(firebaseId, streamKey);
   }
 
   @Get('status/:streamKey')
@@ -94,7 +97,7 @@ export class StreamController {
 
   @Post('settings/:streamKey')
   async updateStreamSettings(
-    @Req() req: ClerkRequest,
+    @Req() req: FirebaseRequest,
     @Param('streamKey') streamKey: string,
     @Body() settings: {
       quality?: string;
@@ -102,20 +105,12 @@ export class StreamController {
       resolution?: string;
     },
   ) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated or UID missing.');
 
-    return this.streamService.updateStreamSettings(userId, streamKey, settings);
+    return this.streamService.updateStreamSettings(firebaseId, streamKey, settings);
   }
 
-  @Delete('key/:streamKey')
-  async deleteStreamKey(
-    @Req() req: ClerkRequest,
-    @Param('streamKey') streamKey: string,
-  ) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
-
-    return this.streamService.deleteStreamKey(userId, streamKey);
-  }
+  // The regenerate-key endpoint effectively replaces the old deleteStreamKey functionality
+  // So, the @Delete('key/:streamKey') endpoint is removed.
 }

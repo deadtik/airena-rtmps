@@ -19,7 +19,7 @@ import { VodModule } from './vod/vod.module'; // Import VOD module
     ConfigModule.forRoot({ isGlobal: true }),
     AdsModule,
     StreamModule,
-    VodModule, // Add VOD module here
+    VodModule, // ✅ Add VOD module here
     MetricsModule,
     TypeOrmModule.forRoot({
       type: 'sqlite',
