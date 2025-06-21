@@ -4,6 +4,7 @@
     "description": "RTMPS Livestreaming Server with NestJS and NodeMediaServer",
     "main": "dist/main.js",
     "scripts": {
+        "test": "jest --config jest.config.js",
         "start": "node dist/main.js",
         "start:dev": "ts-node src/main.ts",
         "build": "tsc -p tsconfig.build.json",
@@ -26,6 +27,7 @@
         "firebase-admin": "^13.3.0",
         "jsonwebtoken": "^9.0.2",
         "jwks-rsa": "^3.2.0",
+        "nanoid": "^5.1.5",
         "nestjs": "^0.0.1",
         "node-media-server": "^2.4.7",
         "passport": "^0.7.0",
