@@ -2,31 +2,27 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  @PrimaryGeneratedColumn()
+  id!: number;
 
   @Column({ unique: true })
-  clerkId!: string;
+  firebaseId!: string;
 
-  @Column({ unique: true, nullable: true })
+  @Column({ type: 'varchar', length: 255 })
   streamKey!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 255 })
   streamUrl!: string;
 
   @Column({ default: false })
   isStreaming!: boolean;
 
-  @Column({ type: 'json', nullable: true })
-  streamSettings!: {
-    quality?: string;
-    maxBitrate?: number;
-    resolution?: string;
-  };
+  @Column({ type: 'text', nullable: true })
+  streamSettings!: string; // stored as JSON string
 
   @CreateDateColumn()
   createdAt!: Date;
 
   @UpdateDateColumn()
   updatedAt!: Date;
-} 
+}

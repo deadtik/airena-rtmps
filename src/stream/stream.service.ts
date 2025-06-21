@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
@@ -30,52 +30,65 @@ export class StreamService {
   }
 
   private generateHlsUrl(streamKey: string): string {
-    // NMS serves HLS under /<app_name>/<stream_key>/index.m3u8
-    // In nms.service.ts, trans.tasks.app is 'live'.
     return `${this.hlsServerUrl}/live/${streamKey}/index.m3u8`;
   }
 
-  async getOrCreateStreamKey(clerkId: string): Promise<{
-    streamKey: string;
-    streamUrl: string;
-    hlsUrl: string;
-  }> {
-    let user = await this.userRepo.findOne({ where: { clerkId } });
+  async getOrCreateStreamKey(firebaseId: string) {
+    let user = await this.userRepo.findOne({ where: { firebaseId } });
 
     if (!user) {
       const streamKey = this.generateStreamKey();
       const streamUrl = this.generateStreamUrl(streamKey);
-      const hlsUrl = this.generateHlsUrl(streamKey);
 
       user = this.userRepo.create({
-        clerkId,
+        firebaseId,
         streamKey,
         streamUrl,
         isStreaming: false,
-        streamSettings: {
+        streamSettings: JSON.stringify({
           quality: 'high',
           maxBitrate: 6000,
           resolution: '1920x1080',
-        },
+        }),
       });
 
       await this.userRepo.save(user);
-
-      return { streamKey, streamUrl, hlsUrl };
     }
 
     return {
-      streamKey: user.streamKey,
-      streamUrl: user.streamUrl,
-      hlsUrl: this.generateHlsUrl(user.streamKey),
+      streamKey: user.streamKey!,
+      streamUrl: user.streamUrl!,
+      hlsUrl: this.generateHlsUrl(user.streamKey!),
+      isStreaming: user.isStreaming,
+      streamSettings: typeof user.streamSettings === 'string'
+        ? JSON.parse(user.streamSettings)
+        : user.streamSettings,
     };
   }
 
-  async startStream(clerkId: string, streamKey: string) {
-    const user = await this.userRepo.findOne({
-      where: { clerkId, streamKey },
-    });
+  async regenerateStreamKey(firebaseId: string) {
+    const user = await this.userRepo.findOne({ where: { firebaseId } });
+    if (!user) throw new NotFoundException(`User with Firebase ID ${firebaseId} not found.`);
 
+    const newStreamKey = this.generateStreamKey();
+    const newStreamUrl = this.generateStreamUrl(newStreamKey);
+
+    user.streamKey = newStreamKey;
+    user.streamUrl = newStreamUrl;
+    user.isStreaming = false;
+
+    await this.userRepo.save(user);
+
+    return {
+      message: 'Stream key regenerated successfully.',
+      streamKey: newStreamKey,
+      streamUrl: newStreamUrl,
+      hlsUrl: this.generateHlsUrl(newStreamKey),
+    };
+  }
+
+  async startStream(firebaseId: string, streamKey: string) {
+    const user = await this.userRepo.findOne({ where: { firebaseId, streamKey } });
     if (!user) throw new NotFoundException('Stream not found');
 
     user.isStreaming = true;
@@ -89,52 +102,42 @@ export class StreamService {
     };
   }
 
-  async stopStream(clerkId: string, streamKey: string) {
-    const user = await this.userRepo.findOne({
-      where: { clerkId, streamKey },
-    });
-
+  async stopStream(firebaseId: string, streamKey: string) {
+    const user = await this.userRepo.findOne({ where: { firebaseId, streamKey } });
     if (!user) throw new NotFoundException('Stream not found');
 
     user.isStreaming = false;
     await this.userRepo.save(user);
 
-    return {
-      success: true,
-      message: 'Stream stopped successfully',
-    };
+    return { success: true, message: 'Stream stopped successfully' };
   }
 
-  async listUserStreams(clerkId: string) {
-    const user = await this.userRepo.findOne({
-      where: { clerkId },
-    });
-
+  async listUserStreams(firebaseId: string) {
+    const user = await this.userRepo.findOne({ where: { firebaseId } });
     if (!user) throw new NotFoundException('User not found');
 
-    const metrics = await this.metricService.getMetrics(user.streamKey);
+    const metrics = await this.metricService.getMetrics(user.streamKey ?? '');
 
     return {
       streams: [{
         streamKey: user.streamKey,
         streamUrl: user.streamUrl,
-        hlsUrl: this.generateHlsUrl(user.streamKey),
+        hlsUrl: this.generateHlsUrl(user.streamKey ?? ''),
         isLive: user.isStreaming,
         metrics: {
           bitrate: metrics?.bitrate ?? 0,
           latency: metrics?.latency ?? 0,
           bandwidth: metrics?.bandwidth ?? 0,
         },
-        settings: user.streamSettings,
+        settings: typeof user.streamSettings === 'string'
+          ? JSON.parse(user.streamSettings)
+          : user.streamSettings,
       }],
     };
   }
 
-  async getStreamDetails(clerkId: string, streamKey: string) {
-    const user = await this.userRepo.findOne({
-      where: { clerkId, streamKey },
-    });
-
+  async getStreamDetails(firebaseId: string, streamKey: string) {
+    const user = await this.userRepo.findOne({ where: { firebaseId, streamKey } });
     if (!user) throw new NotFoundException('Stream not found');
 
     const metrics = await this.metricService.getMetrics(streamKey);
@@ -149,7 +152,9 @@ export class StreamService {
         latency: metrics?.latency ?? 0,
         bandwidth: metrics?.bandwidth ?? 0,
       },
-      settings: user.streamSettings,
+      settings: typeof user.streamSettings === 'string'
+        ? JSON.parse(user.streamSettings)
+        : user.streamSettings,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -178,18 +183,21 @@ export class StreamService {
     if (!user) throw new NotFoundException('Stream not found');
 
     const metrics = await this.metricService.getMetrics(streamKey);
+    const parsedSettings = typeof user.streamSettings === 'string'
+      ? JSON.parse(user.streamSettings)
+      : user.streamSettings;
 
     return {
       bitrate: metrics?.bitrate ?? 0,
-      fps: 0, // Placeholder
-      resolution: user.streamSettings?.resolution || '0x0',
+      fps: 0,
+      resolution: parsedSettings?.resolution || '0x0',
       totalViewers: 0,
       peakViewers: 0,
     };
   }
 
   async updateStreamSettings(
-    clerkId: string,
+    firebaseId: string,
     streamKey: string,
     settings: {
       quality?: string;
@@ -197,17 +205,15 @@ export class StreamService {
       resolution?: string;
     },
   ) {
-    const user = await this.userRepo.findOne({
-      where: {
-        clerkId,
-        streamKey,
-      },
-    });
-
+    const user = await this.userRepo.findOne({ where: { firebaseId, streamKey } });
     if (!user) throw new NotFoundException('Stream not found');
 
+    const currentSettings = typeof user.streamSettings === 'string'
+      ? JSON.parse(user.streamSettings)
+      : user.streamSettings || {};
+
     user.streamSettings = {
-      ...user.streamSettings,
+      ...currentSettings,
       ...settings,
     };
 
@@ -217,36 +223,6 @@ export class StreamService {
       success: true,
       message: 'Stream settings updated successfully',
       settings: user.streamSettings,
-    };
-  }
-
-  async deleteStreamKey(clerkId: string, streamKey: string) {
-    // This method effectively "regenerates" the stream key by replacing the old one
-    // with a new one. The user's stream settings are preserved.
-    const user = await this.userRepo.findOne({
-      where: {
-        clerkId,
-        streamKey,
-      },
-    });
-
-    if (!user) throw new NotFoundException('Stream key not found');
-
-    const newStreamKey = this.generateStreamKey();
-    const newStreamUrl = this.generateStreamUrl(newStreamKey);
-
-    user.streamKey = newStreamKey;
-    user.streamUrl = newStreamUrl;
-    user.isStreaming = false;
-
-    await this.userRepo.save(user);
-
-    return {
-      success: true,
-      message: 'Stream key regenerated successfully',
-      newStreamKey,
-      newStreamUrl,
-      hlsUrl: this.generateHlsUrl(newStreamKey),
     };
   }
 }

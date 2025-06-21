@@ -1,9 +1,9 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import NodeMediaServer from 'node-media-server';
 import { MetricService } from '../metrics/metric.service';
 import { VodService } from '../vod/vod.service';
 import { spawn } from 'child_process';
+import * as fs from 'fs';
 
 @Injectable()
 export class NmsService implements OnModuleInit {
@@ -13,12 +13,28 @@ export class NmsService implements OnModuleInit {
   constructor(
     private readonly metricService: MetricService,
     private readonly vodService: VodService,
-    private readonly configService: ConfigService,
   ) {}
 
   onModuleInit() {
-    const ffmpegPath = this.configService.get<string>('FFMPEG_PATH', 'ffmpeg');
-    const mediaRoot = this.configService.get<string>('MEDIA_ROOT', './media');
+    const isWindows = process.platform === 'win32';
+
+    // Hardcoded FFmpeg binary path (update according to your actual locations)
+    let ffmpegPath = isWindows
+      ? 'C:/ffmpeg/bin/ffmpeg.exe' // Windows path
+      : '/usr/bin/ffmpeg';         // Linux path
+
+    // Normalize path slashes for Windows
+    if (isWindows && ffmpegPath.includes('\\')) {
+      ffmpegPath = ffmpegPath.replace(/\\/g, '/');
+    }
+
+    if (!fs.existsSync(ffmpegPath)) {
+      this.logger.error(`❌ FFmpeg binary not found at: ${ffmpegPath}`);
+      process.exit(1);
+    }
+
+    const mediaRoot = './media';
+
     const config = {
       rtmp: {
         port: 1935,
@@ -46,57 +62,51 @@ export class NmsService implements OnModuleInit {
     };
 
     this.nms = new NodeMediaServer(config);
+    this.setupStreamEvents(ffmpegPath);
+    this.nms.run();
+  }
 
-    this.nms.on('postPublish', async (id, streamPath, args) => {
+  private setupStreamEvents(ffmpegPath: string) {
+    this.nms.on('postPublish', async (id, streamPath) => {
       const streamKey = streamPath.split('/').pop() || 'defaultStreamKey';
       this.logger.log(`[NodeEvent] Stream started for ${streamKey}`);
 
-      // === VOD (Video On Demand) Output ===
-      // Spawn an FFmpeg process to record the incoming stream to an MP4 file.
       const vodOutputPath = this.vodService.generateVodPath(streamKey);
+
       try {
         const ffmpeg = spawn(ffmpegPath, [
           '-i', `rtmp://127.0.0.1/live/${streamKey}`,
           '-c:v', 'copy',
           '-c:a', 'aac',
-          '-y', // overwrite if exists
+          '-y',
           vodOutputPath,
         ]);
 
         ffmpeg.stderr.on('data', (data: Buffer) => {
-          // VOD FFmpeg typically outputs progress to stderr
           this.logger.verbose(`[FFmpeg VOD Stderr][${streamKey}] ${data.toString().trim()}`);
         });
 
         ffmpeg.on('error', (err) => {
-          this.logger.error(`[FFmpeg VOD Error][${streamKey}] Failed to start or error during process: ${err.message}`, err.stack);
+          this.logger.error(`[FFmpeg VOD Error][${streamKey}] ${err.message}`, err.stack);
         });
 
         ffmpeg.on('close', (code) => {
           if (code !== 0) {
-            this.logger.error(`[FFmpeg VOD Error][${streamKey}] Recording process exited with code: ${code}`);
+            this.logger.error(`[FFmpeg VOD Error][${streamKey}] exited with code: ${code}`);
           } else {
-            this.logger.log(`[FFmpeg VOD][${streamKey}] Recording ended successfully. Exit code: ${code}`);
+            this.logger.log(`[FFmpeg VOD][${streamKey}] completed successfully.`);
           }
           this.metricService.resetMetrics(streamKey);
         });
       } catch (error: unknown) {
-        const message = `[FFmpeg VOD Error][${streamKey}] Failed to spawn FFmpeg process for VOD`;
-        if (error instanceof Error) {
-          this.logger.error(message + `: ${error.message}`, error.stack);
-        } else {
-          this.logger.error(message + `: ${String(error)}`);
-        }
+        this.logUnknownError(`[FFmpeg VOD Error][${streamKey}]`, error);
       }
 
-      // === Live Metrics Calculation ===
-      // Spawn a separate FFmpeg process that consumes the stream but outputs no file (-f null).
-      // Its stderr (when -stats is used) or stdout (when -progress pipe:1 is used) provides raw data
-      // which can be parsed to calculate live metrics like bitrate.
+      // === Metrics ===
       let lastTotalSize = 0;
       let lastTimestamp = Date.now();
-      let lastTime = Date.now(); // For latency calculation
-      let dataChunksProcessed = 0; // Counter for initial data points
+      let lastTime = Date.now();
+      let dataChunksProcessed = 0;
 
       try {
         const metricsFfmpeg = spawn(ffmpegPath, [
@@ -104,116 +114,90 @@ export class NmsService implements OnModuleInit {
           '-f', 'null',
           '-',
           '-stats',
-          '-progress', 'pipe:1', // Ensure progress is written to stdout
+          '-progress', 'pipe:1',
         ]);
 
         metricsFfmpeg.on('error', (err) => {
-          this.logger.error(`[FFmpeg Metrics Error][${streamKey}] Failed to start or error during process: ${err.message}`, err.stack);
+          this.logger.error(`[FFmpeg Metrics Error][${streamKey}] ${err.message}`, err.stack);
         });
 
         metricsFfmpeg.stdout.on('data', (data: Buffer) => {
-        const lines = data.toString().split('\n');
-        let totalSize = lastTotalSize;
+          const lines = data.toString().split('\n');
+          let totalSize = lastTotalSize;
 
-        for (const line of lines) {
-          const [key, valueRaw] = line.trim().split('=');
-          const value = valueRaw ?? '0';
-
-          // FFmpeg -progress pipe:1 output includes lines like 'total_size=N'
-          if (key === 'total_size') {
-            totalSize = parseInt(value, 10); // Total bytes processed so far
+          for (const line of lines) {
+            const [key, valueRaw] = line.trim().split('=');
+            const value = valueRaw ?? '0';
+            if (key === 'total_size') totalSize = parseInt(value, 10);
           }
-        }
 
-        const now = Date.now();
-        const deltaBytes = totalSize - lastTotalSize; // Bytes processed in this interval
-        const durationSec = (now - lastTimestamp) / 1000; // Duration of this interval in seconds
+          const now = Date.now();
+          const deltaBytes = totalSize - lastTotalSize;
+          const durationSec = (now - lastTimestamp) / 1000;
+          dataChunksProcessed++;
 
-        dataChunksProcessed++;
+          if (durationSec <= 0) {
+            this.logger.verbose(`[FFmpeg Metrics][${streamKey}] Skipping short interval.`);
+            lastTimestamp = now;
+            return;
+          }
 
-        // Avoid division by zero or extremely small intervals which can lead to skewed bitrate.
-        if (durationSec <= 0) {
-          this.logger.verbose(`[FFmpeg Metrics][${streamKey}] Duration too short (${durationSec}s), skipping bitrate calculation for this interval.`);
-          lastTimestamp = now; // Update timestamp to prevent stale calculations in the next interval.
-          // We don't update lastTotalSize here, so deltaBytes in the next interval will account for bytes from this ignored period.
-          return;
-        }
+          const bitrate = (deltaBytes * 8) / 1024 / durationSec;
+          const latency = now - lastTime;
+          const bandwidth = bitrate * 1.2;
 
-        // Calculate bitrate: (bytes * 8 bits/byte) / (1024 bits/Kb) / seconds = Kbps
-        const bitrate = (deltaBytes * 8) / 1024 / durationSec;
+          lastTotalSize = totalSize;
+          lastTimestamp = now;
+          lastTime = now;
 
-        lastTotalSize = totalSize;
-        lastTimestamp = now;
+          if (dataChunksProcessed < 3) {
+            this.logger.verbose(`[FFmpeg Metrics][${streamKey}] Stabilizing...`);
+            return;
+          }
 
-        // This latency measures the time taken by the FFmpeg stats process itself to output data.
-        // It's an indicator of the FFmpeg process's health on the server, not end-to-end stream latency.
-        const latency = now - lastTime;
-        lastTime = now;
-
-        // Estimate required bandwidth, e.g., 20% overhead on current bitrate.
-        const bandwidth = bitrate * 1.2;
-
-        // Skip sending metrics for the first few data chunks to allow values to stabilize.
-        // FFmpeg often reports very high initial bitrates as it starts processing.
-        if (dataChunksProcessed < 3) {
-          this.logger.verbose(`[FFmpeg Metrics][${streamKey}] Initial data point (${dataChunksProcessed}), waiting for more data before sending update.`);
-          // lastTotalSize and lastTimestamp are updated, so the next calculation will use this point as its base.
-          return;
-        }
-
-        this.metricService.updateMetrics(streamKey, {
-          bitrate: Math.round(bitrate),
-          latency,
-          bandwidth: Number(bandwidth.toFixed(2)),
+          this.metricService.updateMetrics(streamKey, {
+            bitrate: Math.round(bitrate),
+            latency,
+            bandwidth: Number(bandwidth.toFixed(2)),
+          });
         });
-      });
 
-      metricsFfmpeg.stderr.on('data', (data: Buffer) => {
-        this.logger.warn(`[FFmpeg Metrics Stderr][${streamKey}]: ${data.toString().trim()}`);
-      });
+        metricsFfmpeg.stderr.on('data', (data: Buffer) => {
+          this.logger.warn(`[FFmpeg Metrics Stderr][${streamKey}] ${data.toString().trim()}`);
+        });
 
-      metricsFfmpeg.on('close', (code) => {
-        if (code !== 0) {
-          this.logger.error(`[FFmpeg Metrics Error][${streamKey}] Metrics process exited with code: ${code}`);
-        } else {
-          this.logger.log(`[FFmpeg Metrics][${streamKey}] Metrics process for ${streamKey} exited successfully with code ${code}`);
-        }
-      });
-    } catch (error: unknown) {
-      const message = `[FFmpeg Metrics Error][${streamKey}] Failed to spawn FFmpeg process for metrics`;
-      if (error instanceof Error) {
-        this.logger.error(message + `: ${error.message}`, error.stack);
-      } else {
-        this.logger.error(message + `: ${String(error)}`);
+        metricsFfmpeg.on('close', (code) => {
+          if (code !== 0) {
+            this.logger.error(`[FFmpeg Metrics Error][${streamKey}] exited with code: ${code}`);
+          } else {
+            this.logger.log(`[FFmpeg Metrics][${streamKey}] completed.`);
+          }
+        });
+      } catch (error: unknown) {
+        this.logUnknownError(`[FFmpeg Metrics Error][${streamKey}]`, error);
       }
-    }
     });
 
-    // Event listener for when a stream finishes publishing.
-    this.nms.on('donePublish', (id, streamPath, args) => {
+    this.nms.on('donePublish', (id, streamPath) => {
       const streamKey = streamPath.split('/').pop() || 'defaultStreamKey';
       this.logger.log(`[NodeEvent][${streamKey}] Stream publishing finished.`);
-      // The metricService.resetMetrics is called when the VOD FFmpeg process 'close' event fires.
-      // This usually aligns with 'donePublish'. If VOD recording is not active or fails much earlier
-      // than the stream itself stopping, metrics for that streamKey might persist until the next
-      // stream with the same key starts or if manual cleanup is implemented elsewhere.
     });
 
-    // Global error handler for the NodeMediaServer instance itself.
-    // This can catch errors not specific to a single stream/event but related to NMS core operations.
     this.nms.on('error', (err: unknown) => {
       const message = `[NodeMediaServer Global Error]`;
       if (err instanceof Error) {
-        this.logger.error(message + `: ${err.message}`, err.stack);
+        this.logger.error(`${message}: ${err.message}`, err.stack);
       } else {
-        this.logger.error(message + `: ${String(err)}`);
+        this.logger.error(`${message}: ${String(err)}`);
       }
-      // Depending on the severity and type of error, NMS might become unstable.
-      // For production systems, more sophisticated error handling (e.g., attempting to restart NMS,
-      // or alerting mechanisms) might be necessary. Such logic would need careful implementation
-      // to avoid restart loops or other unintended consequences.
     });
+  }
 
-    this.nms.run();
+  private logUnknownError(prefix: string, error: unknown) {
+    if (error instanceof Error) {
+      this.logger.error(`${prefix}: ${error.message}`, error.stack);
+    } else {
+      this.logger.error(`${prefix}: ${String(error)}`);
+    }
   }
 }
