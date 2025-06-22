@@ -147,19 +147,19 @@ describe('VodService', () => {
     it('should return null and log a warning for path traversal attempt with ..', () => {
       const filename = '../outside.mp4';
       expect(service.getVodFilePath(filename)).toBeNull();
-      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining(`Invalid characters or path traversal in VOD filename: '${filename}'`));
+      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining(`Invalid characters or path traversal components found in VOD filename: '${filename}'`));
     });
 
     it('should return null and log a warning for path traversal attempt with /', () => {
       const filename = 'sub/dir/file.mp4';
       expect(service.getVodFilePath(filename)).toBeNull();
-      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining(`Invalid characters or path traversal in VOD filename: '${filename}'`));
+      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining(`Invalid characters or path traversal components found in VOD filename: '${filename}'`));
     });
 
     it('should return null and log a warning for filename with null byte', () => {
       const filename = 'file\0name.mp4';
       expect(service.getVodFilePath(filename)).toBeNull();
-      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining(`Invalid characters or path traversal in VOD filename: '${filename}'`));
+      expect(mockLogger.warn).toHaveBeenCalledWith(expect.stringContaining(`Invalid characters or path traversal components found in VOD filename: '${filename}'`));
     });
 
     // Skipping this test due to persistent "Cannot redefine property: resolve" error with jest.spyOn(path, 'resolve')
@@ -187,11 +187,12 @@ describe('VodService', () => {
 
     it('should return null if resolved path is the VOD root itself', () => {
       const filename = ''; // This makes path.join(vodRoot, filename) == vodRoot
+      const resolvedRequestedPath = path.resolve((service as any).vodRoot, filename);
+      const resolvedVodRoot = path.resolve((service as any).vodRoot);
       expect(service.getVodFilePath(filename)).toBeNull();
-      // Actual log: "Path traversal or invalid file access: '' resolved to '/app/media/vod', which is not within '/app/media/vod'"
-      // The VOD service's log message is: `Path traversal or invalid file access: '${filename}' resolved to '${resolvedRequestedPath}', which is not within '${resolvedVodRoot}'`
+      // Actual log from service: `Path traversal attempt or invalid file access for VOD: Filename '${filename}' resolved to '${resolvedRequestedPath}', which is outside the VOD root '${resolvedVodRoot}' or is the root itself.`
       expect(mockLogger.warn).toHaveBeenCalledWith(
-         expect.stringContaining(`Path traversal or invalid file access: '${filename}' resolved to '${path.resolve((service as any).vodRoot, filename)}', which is not within '${(service as any).vodRoot}'`)
+        `Path traversal attempt or invalid file access for VOD: Filename '${filename}' resolved to '${resolvedRequestedPath}', which is outside the VOD root '${resolvedVodRoot}' or is the root itself.`
       );
     });
   });

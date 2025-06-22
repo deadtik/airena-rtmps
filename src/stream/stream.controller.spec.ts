@@ -75,10 +75,10 @@ describe('StreamController', () => {
       const mockRequestMissingUid = { user: {} } as FirebaseRequest;
 
       await expect(controller.getStreamCredentials(mockRequestMissingUser))
-        .rejects.toThrow(new UnauthorizedException('User not authenticated or UID missing.'));
+        .rejects.toThrow(new UnauthorizedException('User not authenticated.'));
 
       await expect(controller.getStreamCredentials(mockRequestMissingUid))
-        .rejects.toThrow(new UnauthorizedException('User not authenticated or UID missing.'));
+        .rejects.toThrow(new UnauthorizedException('User not authenticated.'));
     });
   });
 
@@ -104,22 +104,22 @@ describe('StreamController', () => {
       const mockRequestMissingUid = { user: {} } as FirebaseRequest;
 
       await expect(controller.regenerateStreamKey(mockRequestMissingUser))
-        .rejects.toThrow(new UnauthorizedException('User not authenticated or UID missing.'));
+        .rejects.toThrow(new UnauthorizedException('User not authenticated.'));
 
       await expect(controller.regenerateStreamKey(mockRequestMissingUid))
-        .rejects.toThrow(new UnauthorizedException('User not authenticated or UID missing.'));
+        .rejects.toThrow(new UnauthorizedException('User not authenticated.'));
     });
   });
 
   // Example of updating an existing test type (if there were any)
-  describe('listStreams (@Get("list"))', () => {
+  describe('listUserStreams (@Get("list"))', () => {
     it('should use firebaseId from req.user.uid', async () => {
       const firebaseId = 'test-user-for-list';
       const mockRequest = { user: { uid: firebaseId } } as FirebaseRequest;
       const serviceResult = { streams: [] }; // Mocked response
       mockStreamService.listUserStreams.mockResolvedValue(serviceResult);
 
-      await controller.listStreams(mockRequest);
+      await controller.listUserStreams(mockRequest);
       expect(streamService.listUserStreams).toHaveBeenCalledWith(firebaseId);
     });
   });

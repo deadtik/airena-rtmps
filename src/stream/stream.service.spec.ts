@@ -162,7 +162,7 @@ describe('StreamService', () => { // Renamed describe block
         streamKey: 'fixed_test_stream_key_hex', // Expect consistent key
         streamUrl: 'rtmp://localhost:1935/live/fixed_test_stream_key_hex',
         isStreaming: false,
-        streamSettings: defaultStreamSettings,
+        streamSettings: JSON.stringify(defaultStreamSettings), // Expect JSON string
       });
       expect(userRepository.save).toHaveBeenCalled();
       expect(result).toEqual({
@@ -229,6 +229,7 @@ describe('StreamService', () => { // Renamed describe block
         isStreaming: false, // Crucial check
       }));
       expect(result).toEqual({
+        message: 'Stream key regenerated successfully.', // Added expected message
         streamKey: 'fixed_test_stream_key_hex', // Expect consistent key
         streamUrl: 'rtmp://localhost:1935/live/fixed_test_stream_key_hex',
         hlsUrl: 'http://localhost:8000/live/fixed_test_stream_key_hex/index.m3u8',
@@ -240,7 +241,7 @@ describe('StreamService', () => { // Renamed describe block
 
       await expect(service.regenerateStreamKey(firebaseId))
         .rejects
-        .toThrow(new NotFoundException(`User with firebaseId ${firebaseId} not found.`));
+        .toThrow(new NotFoundException(`User with Firebase ID ${firebaseId} not found.`)); // Corrected message
       expect(userRepository.save).not.toHaveBeenCalled();
     });
   });

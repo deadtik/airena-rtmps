@@ -103,43 +103,43 @@ describe('FirebaseAuthMiddleware', () => {
 
     it('should throw ForbiddenException if verifyIdToken fails with a generic error', async () => {
       const mockToken = 'some-token';
-      mockRequest.headers!['authorization'] = `Bearer ${mockToken}`; // Use non-null assertion
-
-      // Ensure verifyIdToken is an async mock for await to work as expected
+      mockRequest.headers!['authorization'] = `Bearer ${mockToken}`;
       mockVerifyIdToken.mockRejectedValue(new Error('Firebase generic error'));
 
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       await expect(
         middleware.use(mockRequest as Request, mockResponse as Response, nextFunction)
       ).rejects.toThrow(new ForbiddenException('Invalid Firebase ID token.'));
       expect(nextFunction).not.toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
     });
 
     it('should throw UnauthorizedException if token is expired (auth/id-token-expired)', async () => {
       const mockToken = 'expired-token';
-      mockRequest.headers!['authorization'] = `Bearer ${mockToken}`; // Use non-null assertion
+      mockRequest.headers!['authorization'] = `Bearer ${mockToken}`;
       const expiredError = { code: 'auth/id-token-expired', message: 'Token expired' };
-
-      // Ensure verifyIdToken is an async mock for await to work as expected
       mockVerifyIdToken.mockRejectedValue(expiredError);
 
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       await expect(
         middleware.use(mockRequest as Request, mockResponse as Response, nextFunction)
       ).rejects.toThrow(new UnauthorizedException('Firebase ID token has expired.'));
       expect(nextFunction).not.toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
     });
 
     it('should throw UnauthorizedException if token is malformed (auth/argument-error)', async () => {
       const mockToken = 'malformed-token';
-      mockRequest.headers!['authorization'] = `Bearer ${mockToken}`; // Use non-null assertion
+      mockRequest.headers!['authorization'] = `Bearer ${mockToken}`;
       const malformedError = { code: 'auth/argument-error', message: 'Token malformed' };
-
-      // Ensure verifyIdToken is an async mock for await to work as expected
       mockVerifyIdToken.mockRejectedValue(malformedError);
 
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       await expect(
         middleware.use(mockRequest as Request, mockResponse as Response, nextFunction)
       ).rejects.toThrow(new UnauthorizedException('Firebase ID token is malformed or invalid.'));
       expect(nextFunction).not.toHaveBeenCalled();
+      consoleErrorSpy.mockRestore();
     });
   });
 });
