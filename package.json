@@ -4,6 +4,7 @@
     "description": "RTMPS Livestreaming Server with NestJS and NodeMediaServer",
     "main": "dist/main.js",
     "scripts": {
+        "test": "jest --config jest.config.js",
         "start": "node dist/main.js",
         "start:dev": "ts-node src/main.ts",
         "build": "tsc -p tsconfig.build.json",
@@ -26,6 +27,7 @@
         "firebase-admin": "^13.3.0",
         "jsonwebtoken": "^9.0.2",
         "jwks-rsa": "^3.2.0",
+        "nanoid": "^5.1.5",
         "nestjs": "^0.0.1",
         "node-media-server": "^2.4.7",
         "passport": "^0.7.0",
@@ -39,15 +41,18 @@
         "uuid": "^9.0.0"
     },
     "devDependencies": {
+        "@nestjs/testing": "^10.4.19",
         "@types/axios": "^0.14.4",
         "@types/express": "^4.17.21",
+        "@types/jest": "^30.0.0",
         "@types/node": "^18.17.19",
         "@types/node-media-server": "^2.3.7",
         "@types/passport-jwt": "^4.0.1",
         "@types/uuid": "^10.0.0",
         "axios": "^1.9.0",
+        "jest": "^30.0.2",
         "ts-jest": "^29.4.0",
         "ts-node": "^10.9.1",
-        "typescript": "^5.1.6"
+        "typescript": "^5.8.3"
     }
 }

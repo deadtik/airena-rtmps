@@ -2,26 +2,23 @@ import {
   Controller,
   Get,
   Post,
-  Delete,
-  Req,
   Body,
+  Req,
   Param,
   UnauthorizedException,
-  UseGuards,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { StreamService } from './stream.service';
 import { MetricService } from '../metrics/metric.service';
-import { ClerkAuthGuard } from '../auth/jwt-auth.guard';
 
-// Extend Request type to include authenticated Clerk user
-interface ClerkRequest extends Request {
+// Extend Request to include Firebase UID
+interface FirebaseRequest extends Request {
   user?: {
-    userId: string;
+    uid: string;
+    email?: string;
   };
 }
 
-@UseGuards(ClerkAuthGuard)
 @Controller('stream')
 export class StreamController {
   constructor(
@@ -29,46 +26,46 @@ export class StreamController {
     private readonly metricService: MetricService,
   ) {}
 
-  @Get('key')
-  async getStreamKey(@Req() req: ClerkRequest) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
+  @Get('credentials')
+  async getStreamCredentials(@Req() req: FirebaseRequest) {
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated.');
+    return this.streamService.getOrCreateStreamKey(firebaseId);
+  }
 
-    const { streamKey } = await this.streamService.getOrCreateStreamKey(userId);
-
-    return {
-      streamKey,
-      streamUrl: `rtmps://yourdomain.com/live/${streamKey}`,
-      hlsUrl: `https://yourdomain.com/live/${streamKey}/index.m3u8`,
-    };
+  @Post('regenerate-key')
+  async regenerateStreamKey(@Req() req: FirebaseRequest) {
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated.');
+    return this.streamService.regenerateStreamKey(firebaseId);
   }
 
   @Post('start/:streamKey')
-  async startStream(@Req() req: ClerkRequest, @Param('streamKey') streamKey: string) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
-    return this.streamService.startStream(userId, streamKey);
+  async startStream(@Req() req: FirebaseRequest, @Param('streamKey') streamKey: string) {
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated.');
+    return this.streamService.startStream(firebaseId, streamKey);
   }
 
   @Post('stop/:streamKey')
-  async stopStream(@Req() req: ClerkRequest, @Param('streamKey') streamKey: string) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
-    return this.streamService.stopStream(userId, streamKey);
+  async stopStream(@Req() req: FirebaseRequest, @Param('streamKey') streamKey: string) {
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated.');
+    return this.streamService.stopStream(firebaseId, streamKey);
   }
 
   @Get('list')
-  async listStreams(@Req() req: ClerkRequest) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
-    return this.streamService.listUserStreams(userId);
+  async listUserStreams(@Req() req: FirebaseRequest) {
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated.');
+    return this.streamService.listUserStreams(firebaseId);
   }
 
   @Get(':streamKey')
-  async getStreamDetails(@Req() req: ClerkRequest, @Param('streamKey') streamKey: string) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
-    return this.streamService.getStreamDetails(userId, streamKey);
+  async getStreamDetails(@Req() req: FirebaseRequest, @Param('streamKey') streamKey: string) {
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated.');
+    return this.streamService.getStreamDetails(firebaseId, streamKey);
   }
 
   @Get('status/:streamKey')
@@ -94,28 +91,17 @@ export class StreamController {
 
   @Post('settings/:streamKey')
   async updateStreamSettings(
-    @Req() req: ClerkRequest,
+    @Req() req: FirebaseRequest,
     @Param('streamKey') streamKey: string,
-    @Body() settings: {
+    @Body()
+    settings: {
       quality?: string;
       maxBitrate?: number;
       resolution?: string;
     },
   ) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
-
-    return this.streamService.updateStreamSettings(userId, streamKey, settings);
-  }
-
-  @Delete('key/:streamKey')
-  async deleteStreamKey(
-    @Req() req: ClerkRequest,
-    @Param('streamKey') streamKey: string,
-  ) {
-    const userId = req.user?.userId;
-    if (!userId) throw new UnauthorizedException('User not authenticated');
-
-    return this.streamService.deleteStreamKey(userId, streamKey);
+    const firebaseId = req.user?.uid;
+    if (!firebaseId) throw new UnauthorizedException('User not authenticated.');
+    return this.streamService.updateStreamSettings(firebaseId, streamKey, settings);
   }
 }

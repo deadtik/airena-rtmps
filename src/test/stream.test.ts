@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 
 // API Configuration
 const API_BASE_URL = 'http://localhost:3000';
-const FRONTEND_URL = 'http://localhost:3001';
+// const FRONTEND_URL = 'http://localhost:3001'; // Not used in this script
 
 // Test configuration
 const TEST_STREAM_SETTINGS = {
@@ -11,32 +11,65 @@ const TEST_STREAM_SETTINGS = {
   resolution: '1920x1080'
 };
 
-// TODO: Replace this with a fresh Clerk token
-// You can get this by:
-// 1. Logging into your application
-// 2. Opening browser dev tools
-// 3. Going to Application > Local Storage
-// 4. Looking for the Clerk session token
-const CLERK_TOKEN = 'eyJhbGciOiJSUzI1NiIsImNhdCI6ImNsX0I3ZDRQRDExMUFBQSIsImtpZCI6Imluc18yd1JkcWllM0lLTWs3NW9QUWVWaXBTV01xS3AiLCJ0eXAiOiJKV1QifQ';
+// IMPORTANT: This script expects the NestJS application to be running with
+// the E2E_TEST_MODE=true environment variable set.
+// This will enable the mock Firebase Admin SDK in src/config/firebase.config.ts.
+// Example: E2E_TEST_MODE=true npm run start:dev (or your actual start command)
 
-const headers = {
-  'Authorization': `Bearer ${CLERK_TOKEN}`,
+// Mock Firebase ID Tokens for E2E testing
+const VALID_FIREBASE_TOKEN = 'valid-e2e-firebase-token';
+const EXPIRED_FIREBASE_TOKEN = 'expired-e2e-firebase-token';
+const INVALID_FIREBASE_TOKEN = 'invalid-e2e-firebase-token';
+
+
+const createHeaders = (token: string) => ({
+  'Authorization': `Bearer ${token}`,
   'Content-Type': 'application/json'
-};
+});
 
 async function testStreamEndpoints() {
   try {
-    console.log('🚀 Starting Stream API Tests\n');
+    console.log('🚀 Starting Stream API E2E Tests with Mock Firebase Auth\n');
+    console.log('ℹ️ Ensure the NestJS app is running with E2E_TEST_MODE=true\n');
+
+    // Test with an invalid token first
+    console.log('📝 Testing: Endpoint access with an INVALID Firebase token');
+    try {
+      await axios.get(`${API_BASE_URL}/stream/key`, { headers: createHeaders(INVALID_FIREBASE_TOKEN) });
+      console.error('❌ INVALID TOKEN TEST FAILED: Request should have failed but succeeded.');
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 401) { // Error code from FirebaseAuthMiddleware for argument-error
+        console.log(`✅ INVALID TOKEN TEST PASSED: Received ${error.response.status} as expected.`);
+      } else {
+        console.error('❌ INVALID TOKEN TEST FAILED: Unexpected error or status code.', error);
+      }
+    }
+
+    // Test with an expired token
+    console.log('\n📝 Testing: Endpoint access with an EXPIRED Firebase token');
+    try {
+      await axios.get(`${API_BASE_URL}/stream/key`, { headers: createHeaders(EXPIRED_FIREBASE_TOKEN) });
+      console.error('❌ EXPIRED TOKEN TEST FAILED: Request should have failed but succeeded.');
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 401) {
+        console.log(`✅ EXPIRED TOKEN TEST PASSED: Received ${error.response.status} as expected.`);
+      } else {
+        console.error('❌ EXPIRED TOKEN TEST FAILED: Unexpected error or status code.', error);
+      }
+    }
+
+    // Proceed with valid token for other tests
+    const validHeaders = createHeaders(VALID_FIREBASE_TOKEN);
+    console.log('\nℹ️ Proceeding with VALID Firebase token for remaining tests...');
 
     // 1. Get Stream Key
-    console.log('📝 Testing: Get Stream Key');
-    const keyResponse = await axios.get(`${API_BASE_URL}/stream/key`, { headers });
+    console.log('\n📝 Testing: Get Stream Key');
+    const keyResponse = await axios.get(`${API_BASE_URL}/stream/key`, { headers: validHeaders });
     console.log('✅ Stream Key Response:', keyResponse.data);
     const streamKey = keyResponse.data.streamKey;
     const streamUrl = keyResponse.data.streamUrl;
     const hlsUrl = keyResponse.data.hlsUrl;
 
-    // Verify the response format
     if (!streamKey || !streamUrl || !hlsUrl) {
       throw new Error('Invalid stream credentials response');
     }
@@ -51,7 +84,7 @@ async function testStreamEndpoints() {
     const startResponse = await axios.post(
       `${API_BASE_URL}/stream/start/${streamKey}`,
       {},
-      { headers }
+      { headers: validHeaders }
     );
     console.log('✅ Start Stream Response:', startResponse.data);
 
@@ -59,7 +92,7 @@ async function testStreamEndpoints() {
     console.log('\n📝 Testing: Get Stream Status');
     const statusResponse = await axios.get(
       `${API_BASE_URL}/stream/status/${streamKey}`,
-      { headers }
+      { headers: validHeaders } // Assuming this endpoint also requires auth
     );
     console.log('✅ Stream Status:', statusResponse.data);
 
@@ -68,7 +101,7 @@ async function testStreamEndpoints() {
     const settingsResponse = await axios.post(
       `${API_BASE_URL}/stream/settings/${streamKey}`,
       TEST_STREAM_SETTINGS,
-      { headers }
+      { headers: validHeaders }
     );
     console.log('✅ Stream Settings Updated:', settingsResponse.data);
 
@@ -76,23 +109,23 @@ async function testStreamEndpoints() {
     console.log('\n📝 Testing: Get Stream Details');
     const detailsResponse = await axios.get(
       `${API_BASE_URL}/stream/${streamKey}`,
-      { headers }
+      { headers: validHeaders }
     );
     console.log('✅ Stream Details:', detailsResponse.data);
 
-    // 6. Get Stream Metrics
+    // 6. Get Stream Metrics (assuming this also needs auth)
     console.log('\n📝 Testing: Get Stream Metrics');
-    const metricsResponse = await axios.get(
-      `${API_BASE_URL}/stream/metrics/${streamKey}`,
-      { headers }
-    );
+     const metricsResponse = await axios.get(
+       `${API_BASE_URL}/stream/metrics/${streamKey}`,
+       { headers: validHeaders }
+     );
     console.log('✅ Stream Metrics:', metricsResponse.data);
 
     // 7. List Streams
     console.log('\n📝 Testing: List Streams');
     const listResponse = await axios.get(
       `${API_BASE_URL}/stream/list`,
-      { headers }
+      { headers: validHeaders }
     );
     console.log('✅ List Streams:', listResponse.data);
 
@@ -101,41 +134,43 @@ async function testStreamEndpoints() {
     const stopResponse = await axios.post(
       `${API_BASE_URL}/stream/stop/${streamKey}`,
       {},
-      { headers }
+      { headers: validHeaders }
     );
     console.log('✅ Stop Stream Response:', stopResponse.data);
 
-    console.log('\n✨ All tests completed successfully!');
-    console.log('\n📋 Next Steps:');
-    console.log('1. Open OBS Studio');
-    console.log('2. Go to Settings > Stream');
-    console.log('3. Select "Custom" as the service');
-    console.log(`4. Enter Stream URL: ${streamUrl}`);
-    console.log(`5. Enter Stream Key: ${streamKey}`);
-    console.log('6. Click "Start Streaming"');
-    console.log(`7. View your stream at: ${hlsUrl}`);
+    console.log('\n✨ All E2E tests completed successfully!');
+    console.log('\n📋 Next Steps (Manual Streaming Test):');
+    console.log('1. Ensure NestJS app is running (E2E_TEST_MODE can be false now).');
+    console.log('2. Ensure actual Firebase env vars are set for non-mocked mode.');
+    console.log('3. Obtain a real Firebase ID token for your test user.');
+    console.log('4. Use a tool like Postman or a frontend app to get stream credentials with the real token.');
+    console.log('5. Open OBS Studio...');
+    console.log(`6. Stream URL: ${streamUrl} (from step 4)`);
+    console.log(`7. Stream Key: ${streamKey} (from step 4)`);
+    console.log('8. Click "Start Streaming"');
+    console.log(`9. View your stream at: ${hlsUrl} (from step 4)`);
 
   } catch (error) {
     if (error instanceof AxiosError) {
-      console.error('\n❌ Error testing endpoints:', {
+      console.error('\n❌ Error testing endpoints (with VALID token):', {
         status: error.response?.status,
         statusText: error.response?.statusText,
+        config_url: error.config?.url,
         data: error.response?.data,
         headers: error.response?.headers
       });
 
       if (error.response?.status === 401) {
-        console.log('\n🔑 Authentication Error:');
-        console.log('1. Make sure you are logged in to the frontend application');
-        console.log('2. Check that your Clerk token is valid');
-        console.log('3. Verify that the backend is running on port 3000');
-        console.log('4. Verify that the frontend is running on port 3001');
+        console.log('\n🔑 Authentication Error with VALID token:');
+        console.log('1. Double-check E2E_TEST_MODE=true is set when running the NestJS app.');
+        console.log('2. Verify the mock implementation in firebase.config.ts for "valid-e2e-firebase-token".');
+        console.log('3. Check NestJS app console output for any Firebase or auth related errors.');
       }
     } else {
-      console.error('\n❌ Unexpected error:', error);
+      console.error('\n❌ Unexpected error during E2E tests:', error);
     }
   }
 }
 
 // Run the tests
-testStreamEndpoints(); 
+testStreamEndpoints();
