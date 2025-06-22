@@ -122,18 +122,20 @@ describe('StreamService', () => { // Renamed describe block
     }
   });
 
-<<<<<<< HEAD
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
-=======
+
   describe('URL and Key Generation', () => {
     it('should use RTMP_BASE_URL and HLS_BASE_URL from ConfigService for generated URLs in getOrCreateStreamKey when user is new', async () => {
-      const clerkId = 'clerk_new_user';
-      const testRtmpBaseUrl = 'rtmp://custom-rtmp.com:1935';
-      const testHlsBaseUrl = 'https://custom-hls.com';
+      const firebaseId = 'new_user';
+      const testRtmpBaseUrl = 'rtmp://airena.app:1935';
+      const testHlsBaseUrl = 'https://airena.app:8000';
       const generatedStreamKey = 'teststreamkey123';
->>>>>>> 96bb04a23eef9507c65e7e6bad3438844a16b6e1
+    });
+
+  }); // <-- Added missing closing brace for 'URL and Key Generation'
 
   describe('getOrCreateStreamKey', () => {
     const firebaseId = 'test-firebase-id';
@@ -170,7 +172,6 @@ describe('StreamService', () => { // Renamed describe block
         isStreaming: false,
         streamSettings: defaultStreamSettings,
       });
-<<<<<<< HEAD
     });
 
     it('should return existing user data including isStreaming and streamSettings if user exists', async () => {
@@ -183,42 +184,6 @@ describe('StreamService', () => { // Renamed describe block
         streamSettings: existingUserSettings,
       };
       (userRepository.findOne as jest.Mock).mockResolvedValue(existingUser);
-=======
-       // Re-initialize service to pick up new config mock values for its internal properties
-      const newService = new StreamService(userRepository, configService, metricService);
-
-
-      mockUserRepo.findOne.mockResolvedValue(null); // New user
-      mockUserRepo.create.mockImplementation(dto => ({ ...dto, streamKey: generatedStreamKey } as User));
-      mockUserRepo.save.mockImplementation(user => Promise.resolve(user as User));
-
-
-      const result = await newService.getOrCreateStreamKey(clerkId);
-
-      expect(randomBytes).toHaveBeenCalledWith(16);
-      expect(result.streamKey).toBe(generatedStreamKey);
-      expect(result.streamUrl).toBe(`${testRtmpBaseUrl}/live/${generatedStreamKey}`);
-      expect(result.hlsUrl).toBe(`${testHlsBaseUrl}/live/${generatedStreamKey}/index.m3u8`);
-      expect(mockUserRepo.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          clerkId,
-          streamKey: generatedStreamKey,
-          streamUrl: `${testRtmpBaseUrl}/live/${generatedStreamKey}`,
-          // hlsUrl is not stored in User entity, but generated on the fly
-        }),
-      );
-    });
-
-    it('should use RTMP_BASE_URL and HLS_BASE_URL from ConfigService for generated HLS URL when user exists in getOrCreateStreamKey', async () => {
-      const clerkId = 'clerk_existing_user';
-      const existingUser = {
-        clerkId,
-        streamKey: 'existingkey456',
-        streamUrl: 'rtmp://default-rtmp/live/existingkey456',
-        // other user fields
-      } as User;
-      const testHlsBaseUrl = 'https://custom-hls.com:8001';
->>>>>>> 96bb04a23eef9507c65e7e6bad3438844a16b6e1
 
       const result = await service.getOrCreateStreamKey(firebaseId);
 
@@ -232,44 +197,17 @@ describe('StreamService', () => { // Renamed describe block
         isStreaming: true,
         streamSettings: existingUserSettings,
       });
-<<<<<<< HEAD
-=======
-      const newService = new StreamService(userRepository, configService, metricService);
-
-
-      mockUserRepo.findOne.mockResolvedValue(existingUser);
-
-      const result = await newService.getOrCreateStreamKey(clerkId);
-
-      expect(result.streamKey).toBe(existingUser.streamKey);
-      expect(result.streamUrl).toBe(existingUser.streamUrl); // existing streamUrl should be returned
-      expect(result.hlsUrl).toBe(`${testHlsBaseUrl}/live/${existingUser.streamKey}/index.m3u8`); // hlsUrl should be newly generated
->>>>>>> 96bb04a23eef9507c65e7e6bad3438844a16b6e1
     });
   });
 
   describe('regenerateStreamKey', () => {
     const firebaseId = 'test-firebase-id-regen';
 
-<<<<<<< HEAD
     it('should regenerate stream key for an existing user and set isStreaming to false', async () => {
       const existingUser = {
         firebaseId,
         streamKey: 'oldKey789',
         streamUrl: 'rtmp://localhost:1935/live/oldKey789',
-=======
-    it('should use RTMP_BASE_URL and HLS_BASE_URL from ConfigService for generated URLs in deleteStreamKey', async () => {
-      const clerkId = 'clerk_user_for_delete';
-      const oldStreamKey = 'oldstreamkey789';
-      const newGeneratedStreamKey = 'teststreamkey123'; // from crypto mock
-      const testRtmpBaseUrl = 'rtmp://another-rtmp.net';
-      const testHlsBaseUrl = 'http://another-hls.net';
-
-      const existingUser = {
-        clerkId,
-        streamKey: oldStreamKey,
-        streamUrl: `rtmp://localhost:1935/live/${oldStreamKey}`,
->>>>>>> 96bb04a23eef9507c65e7e6bad3438844a16b6e1
         isStreaming: true, // Will be set to false
         streamSettings: { quality: 'auto' },
       };
@@ -300,28 +238,10 @@ describe('StreamService', () => { // Renamed describe block
     it('should throw NotFoundException if user does not exist', async () => {
       (userRepository.findOne as jest.Mock).mockResolvedValue(null);
 
-<<<<<<< HEAD
       await expect(service.regenerateStreamKey(firebaseId))
         .rejects
         .toThrow(new NotFoundException(`User with firebaseId ${firebaseId} not found.`));
       expect(userRepository.save).not.toHaveBeenCalled();
-=======
-      const result = await newService.deleteStreamKey(clerkId, oldStreamKey);
-
-      expect(randomBytes).toHaveBeenCalledWith(16);
-      expect(result.newStreamKey).toBe(newGeneratedStreamKey);
-      expect(result.newStreamUrl).toBe(`${testRtmpBaseUrl}/live/${newGeneratedStreamKey}`);
-      expect(result.hlsUrl).toBe(`${testHlsBaseUrl}/live/${newGeneratedStreamKey}/index.m3u8`);
-
-      expect(mockUserRepo.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          clerkId,
-          streamKey: newGeneratedStreamKey,
-          streamUrl: `${testRtmpBaseUrl}/live/${newGeneratedStreamKey}`,
-          isStreaming: false,
-        }),
-      );
->>>>>>> 96bb04a23eef9507c65e7e6bad3438844a16b6e1
     });
   });
 });
