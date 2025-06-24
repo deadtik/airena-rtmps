@@ -1,11 +1,8 @@
 import { Module } from '@nestjs/common';
-import { PassportModule } from '@nestjs/passport';
-import { ClerkJwtStrategy } from './clerk.strategy';
-import { ClerkAuthGuard } from './jwt-auth.guard';
+import { FirebaseAuthMiddleware } from './firebase-auth.middleware';
 
 @Module({
-  imports: [PassportModule.register({ defaultStrategy: 'clerk-jwt' })],
-  providers: [ClerkJwtStrategy, ClerkAuthGuard],
-  exports: [ClerkAuthGuard],
+  providers: [FirebaseAuthMiddleware],
+  exports: [FirebaseAuthMiddleware],
 })
 export class AuthModule {}
