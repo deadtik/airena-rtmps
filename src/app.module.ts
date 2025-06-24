@@ -13,7 +13,7 @@ import { AdsModule } from './ads/ads.module';
 import { AuthModule } from './auth/auth.module';
 import { StreamModule } from './stream/stream.module';
 import { VodModule } from './vod/vod.module'; // Import VOD module
-import { ClerkMiddleware } from './auth/clerk.middleware';
+import { FirebaseAuthMiddleware } from './auth/firebase-auth.middleware';
 
 @Module({
   imports: [
@@ -36,6 +36,6 @@ import { ClerkMiddleware } from './auth/clerk.middleware';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(ClerkMiddleware).forRoutes('stream');
+    consumer.apply(FirebaseAuthMiddleware).forRoutes('stream');
   }
 }
