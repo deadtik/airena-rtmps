@@ -120,11 +120,32 @@ Listen for the `metricsUpdate` event. This event is emitted globally whenever me
 
 ## REST API Endpoints
 
-The API provides endpoints for managing streams, VODs, and retrieving stream information. All API routes are prefixed with `/api`.
+### Stream Module (`/stream`)
 
-### Authentication
+- **GET `/stream/credentials`** — Get or create a stream key and credentials for the authenticated user.
+- **POST `/stream/regenerate-key`** — Regenerate the stream key for the authenticated user.
+- **POST `/stream/start/:streamKey`** — Mark the stream as started for the given stream key (authenticated user).
+- **POST `/stream/stop/:streamKey`** — Mark the stream as stopped for the given stream key (authenticated user).
+- **GET `/stream/list`** — List all streams for the authenticated user.
+- **GET `/stream/:streamKey`** — Get details for a specific stream key (authenticated user).
+- **GET `/stream/status/:streamKey`** — Get the live status and metrics for a specific stream key.
+- **GET `/stream/metrics/:streamKey`** — Get metrics (bitrate, latency, bandwidth) for a specific stream key.
+- **POST `/stream/settings/:streamKey`** — Update stream settings (quality, maxBitrate, resolution) for a specific stream key (authenticated user).
 
-Endpoints marked with **🔒 Authenticated** require a valid JWT token from Clerk in the `Authorization: Bearer <token>` header. Other endpoints are public.
+### VOD Module (`/vod`)
+
+- **GET `/vod/list`** — List all available VOD files.
+- **GET `/vod/file/:filename`** — Download or stream a specific VOD file.
+- **GET `/vod/details/:filename`** — Get metadata/details for a specific VOD file.
+
+### Metrics Module (`/metrics`)
+
+- **GET `/metrics/:streamKey`** — Get metrics for a specific stream key.
+- **GET `/metrics`** — Get all metrics for all streams.
+
+### Ads Module (`/ads`)
+
+- **GET `/ads/vast-tag`** — Get a VAST ad tag (example endpoint).
 
 ---
 

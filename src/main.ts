@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
-// import { clerkMiddleware } from '@clerk/express';
+
 import { NmsService } from './nms/nms.service'; // Import NmsService
 import { FirebaseAuthMiddleware } from './auth/firebase-auth.middleware'; // Import Firebase Auth Middleware
 import { Request, Response, NextFunction } from 'express';
@@ -27,7 +27,7 @@ async function bootstrap() {
 
   // Enable CORS for frontend-backend communication
   app.enableCors({
-    origin: 'https://airena.app', // your frontend URL
+    origin: '*', // your frontend URL
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
