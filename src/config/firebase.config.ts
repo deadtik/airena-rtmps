@@ -60,11 +60,15 @@ if (E2E_TEST_MODE) {
     }
   });
 
-  const serviceAccount: admin.ServiceAccount = {
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  };
+
+const serviceAccount: admin.ServiceAccount = {
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'), // Ensure newlines are correctly formatted
+};
+
+
+  console.log('DEBUG Firebase Private Key:\n', serviceAccount.privateKey);
 
   if (admin.apps.length === 0) {
     admin.initializeApp({

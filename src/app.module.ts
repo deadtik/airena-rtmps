@@ -13,7 +13,7 @@ import { AdsModule } from './ads/ads.module';
 import { AuthModule } from './auth/auth.module';
 import { StreamModule } from './stream/stream.module';
 import { VodModule } from './vod/vod.module'; // Import VOD module
-import { FirebaseAuthMiddleware } from './auth/firebase-auth.middleware';
+import { FirebaseAuthMiddleware } from './auth/firebase-auth.middleware'; // Import Firebase Auth Middleware
 
 @Module({
   imports: [
