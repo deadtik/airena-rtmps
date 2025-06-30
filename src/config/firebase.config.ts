@@ -60,32 +60,21 @@ if (E2E_TEST_MODE) {
     }
   });
 
-
-const serviceAccount: admin.ServiceAccount = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  // Ensure newlines are correctly formatted and trim any leading/trailing whitespace
-  privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n').trim(),
-};
-
-
-  console.log('DEBUG Firebase Private Key:\n', serviceAccount.privateKey);
+  const serviceAccount: admin.ServiceAccount = {
+    projectId: process.env.FIREBASE_PROJECT_ID!,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
+  };
 
   if (admin.apps.length === 0) {
     try {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
       });
+      console.log('Firebase Admin SDK initialized successfully');
     } catch (error) {
       console.error('Firebase Admin Initialization Error:', error);
-      const typedError = error as { message?: string };
-      if (typedError.message && typedError.message.includes('private key')) {
-        console.error('Detailed Private Key for debugging (ensure this is not logged in production):');
-        console.error('---BEGIN PRIVATE KEY---');
-        console.error(serviceAccount.privateKey);
-        console.error('---END PRIVATE KEY---');
-      }
-      throw error; // Re-throw the error after logging
+      throw error;
     }
   }
 
