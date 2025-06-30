@@ -60,20 +60,22 @@ if (E2E_TEST_MODE) {
     }
   });
 
-
-const serviceAccount: admin.ServiceAccount = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'), // Ensure newlines are correctly formatted
-};
-
-
-  console.log('DEBUG Firebase Private Key:\n', serviceAccount.privateKey);
+  const serviceAccount: admin.ServiceAccount = {
+    projectId: process.env.FIREBASE_PROJECT_ID!,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
+  };
 
   if (admin.apps.length === 0) {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
+    try {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+      console.log('Firebase Admin SDK initialized successfully');
+    } catch (error) {
+      console.error('Firebase Admin Initialization Error:', error);
+      throw error;
+    }
   }
 
   effectiveAdmin = admin;
